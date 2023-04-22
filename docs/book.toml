@@ -4,6 +4,7 @@ language = "en"
 multilingual = false
 src = "src"
 title = "Varlog Documentation"
+git-repository-url = "https://github.com/award28/varlog"
 
 [preprocessor]
 
