@@ -5,6 +5,7 @@ use serde::{Serialize, Deserialize};
 use hmac::Hmac;
 use sha2::Sha256;
 use jwt::{SignWithKey, error::Error, VerifyWithKey};
+use regex::RegexSet;
 
 const DAY_IN_SECONDS: i64 = 86400;
 
@@ -14,6 +15,12 @@ pub mod middleware;
 pub struct AccessData {
     pub paths: Vec<String>,
     pub servers: Vec<String>,
+}
+
+impl AccessData {
+    pub fn can_access_file(&self, filename: &String) -> bool {
+        RegexSet::new(self.paths.clone()).unwrap().matches(filename.as_str()).matched_any()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

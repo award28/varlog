@@ -4,25 +4,89 @@ use actix_web::{web, get, post, middleware, App, HttpResponse, HttpServer, Respo
 use dotenv::dotenv;
 use env_logger::Env;
 use hmac::{Hmac, Mac};
+use regex::RegexSet;
+use serde::Deserialize;
 use sha2::Sha256;
+use validator::{Validate, ValidationError};
 
 mod auth;
+mod logs;
+
+#[derive(Debug, Validate, Deserialize)]
+pub struct AuthRequest {
+    #[validate(length(min = 1), custom = "validate_paths")]
+    pub paths: Vec<String>,
+    pub servers: Vec<String>,
+}
+
+fn validate_paths(paths: &Vec<String>) -> Result<(), ValidationError> {
+    if paths.iter().any(|path| path.contains("..")) {
+        return Err(ValidationError::new("Parent directory access is forbidden."));
+    }
+
+    // Performs validation that the regex is properly formatted.
+    RegexSet::new(paths.clone())
+        .map_err(|_| ValidationError::new(
+            "Invalid file paths"
+        )
+    )?;
+
+
+    Ok(())
+}
 
 #[post("/auth/register")]
 async fn register(
     config: web::Data<AppConfig>,
-    access_data: web::Json<auth::AccessData>,
+    auth_data: web::Json<AuthRequest>,
 ) -> impl Responder {
+    if let Err(e) = auth_data.validate() {
+        return HttpResponse::BadRequest().body(format!("{e}"));
+    }
+
+    let paths = auth_data.paths.iter()
+        .map(|path| {
+            match (path.starts_with("^"), path.ends_with("$")) {
+                (true, true) => path.to_owned(),
+                (true, false) => format!("{path}$"),
+                (false, true) => format!("^{path}"),
+                _ => format!("^{path}$"),
+            }
+        })
+    .collect::<Vec<_>>();
+
+    let access_data = auth::AccessData { 
+        paths, 
+        servers: auth_data.servers.clone()
+    };
+
     // TODO: Respond with JSON Message
-    match auth::Claims::sign(&config.key,access_data.into_inner()) {
+    match auth::Claims::sign(&config.key, access_data) {
         Ok(token_str) => HttpResponse::Ok().body(token_str),
-        Err(e) => HttpResponse::BadRequest().body(format!("{}", e)),
+        Err(e) => HttpResponse::BadRequest().body(format!("{e}")),
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct LogsRequest {
+    filename: String,
+}
+
 #[get("/logs")]
-async fn log(claims: web::ReqData<auth::Claims>) -> impl Responder {
-    HttpResponse::Ok().body(format!("{:#?}", claims.data))
+async fn log(
+    claims: web::ReqData<auth::Claims>,
+    logs_req: web::Query<LogsRequest>,
+) -> impl Responder {
+    match claims.data.can_access_file(&logs_req.filename) {
+        true => {
+            HttpResponse::Ok().body(
+                "Access granted!",
+            )
+        },
+        false => HttpResponse::Forbidden().body(
+            format!("You do not have access to file {}", logs_req.filename),
+        ),
+    }
 }
 
 #[derive(Clone)]
@@ -36,6 +100,12 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
+    logs::LogReader::new(String::from("logged.log"))
+        .iter()
+        .take(10)
+        .for_each(|line| {
+            println!("{}", line);
+        });
     HttpServer::new(|| {
         let key = Hmac::new_from_slice(
             env::var("JWT_SIGNING_KEY")
