@@ -12,7 +12,6 @@ env_logger = "0.10.0"
 futures-util = "0.3.28"
 hmac = "0.12.1"
 jwt = "0.16.0"
-lazy_static = "1.4.0"
 nanoid = "0.4.0"
 serde = { version = "1.0.160", features = ["derive"] }
 sha2 = "0.10.6"

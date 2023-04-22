@@ -24,18 +24,6 @@ pub struct Claims {
     pub data: AccessData,
 }
 
-// Maybe try this for the key?
-//
-// use lazy_static::lazy_static;
-//
-// lazy_static! {
-//     static ref KEY: Hmac<Sha256> = Hmac::new_from_slice(b"horse-battery-staple-gun")
-//         .expect("Key should be parsable");
-// }
-//
-// thread_local!(static KEY: Hmac<Sha256> = Hmac::new_from_slice(b"horse-battery-staple-gun")
-//             .expect("Key should be parsable"));
-
 impl Claims {
     pub fn new(data: AccessData) -> Self {
         let jti = nanoid::nanoid!(6);
@@ -49,11 +37,8 @@ impl Claims {
         }
     }
 
-    pub fn signed(data: AccessData) -> Result<String, Error> {
-        // TODO: What do I do with this key??
-        let key: Hmac<Sha256> = Hmac::new_from_slice(b"horse-battery-staple-gun")
-            .expect("Key should be parsable");
-        Self::new(data).sign_with_key(&key)
+    pub fn sign(key: &Hmac<Sha256>, data: AccessData) -> Result<String, Error> {
+        Self::new(data).sign_with_key(key)
     }
 
     fn validate(&self) -> Result<(), String> {
