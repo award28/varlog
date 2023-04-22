@@ -1,6 +1,7 @@
 use std::env;
 
 use actix_web::{web, get, post, middleware, App, HttpResponse, HttpServer, Responder};
+use dotenv::dotenv;
 use env_logger::Env;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
@@ -31,13 +32,14 @@ struct AppConfig {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok();
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     HttpServer::new(|| {
         let key = Hmac::new_from_slice(
             env::var("JWT_SIGNING_KEY")
-            .unwrap_or(String::from("horse-battery-staple-gun"))
+            .expect("JWT Signing Key to be found in the environment.")
             .as_bytes(),
         ).expect("Key should be parsable");
 

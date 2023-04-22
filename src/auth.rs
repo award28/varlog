@@ -1,8 +1,8 @@
-use actix_web::dev::ServiceRequest;
+use actix_web::{dev::ServiceRequest, web};
 use chrono;
 
 use serde::{Serialize, Deserialize};
-use hmac::{Hmac, Mac};
+use hmac::Hmac;
 use sha2::Sha256;
 use jwt::{SignWithKey, error::Error, VerifyWithKey};
 
@@ -55,8 +55,13 @@ impl TryFrom<&ServiceRequest> for Claims {
     type Error = String;
 
     fn try_from(req: &ServiceRequest) -> Result<Self, Self::Error> {
-        let key: Hmac<Sha256> = Hmac::new_from_slice(b"horse-battery-staple-gun")
-            .expect("Key should be parsable");
+        let config: Option<&web::Data<crate::AppConfig>> = req.app_data();
+
+        // Hitting this case means that the app data is either misconfigured
+        // or is being retrieved incorrectly.
+        if config.is_none() {
+            return Err(String::from("Internal Server Error."));
+        }
 
         let claims: Claims = req.headers()
             .get("Authorization")
@@ -65,7 +70,7 @@ impl TryFrom<&ServiceRequest> for Claims {
             .map_err(|_| "The Authorization header must be ASCII.")?
             .strip_prefix("Bearer ")
             .ok_or("Only bearer tokens are supported.")?
-            .verify_with_key(&key)
+            .verify_with_key(&config.unwrap().key)
             .map_err(|_| "Invalid authorization token.")?;
 
         claims.validate()?;

@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 actix-web = "4"
 chrono = "0.4.24"
+dotenv = "0.15.0"
 env_logger = "0.10.0"
 futures-util = "0.3.28"
 hmac = "0.12.1"

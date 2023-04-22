@@ -58,6 +58,9 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         match super::Claims::try_from(&req) {
             Err(e) => Box::pin(async move {
+                if e.eq("Internal Server Error") {
+                    return Err(actix_web::error::ErrorInternalServerError(e));
+                }
                 Err(actix_web::error::ErrorUnauthorized(e))
             }),
             Ok(claims) => {
