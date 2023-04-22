@@ -18,11 +18,23 @@ pub struct AccessData {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
-    jti: String, // Claim: JWT, NanoID
-    iat: i64, // Claim: Issued At
-    exp: i64, // Claim: Expires
-    data: AccessData,
+    pub jti: String, // Claim: JWT, NanoID
+    pub iat: i64, // Claim: Issued At
+    pub exp: i64, // Claim: Expires
+    pub data: AccessData,
 }
+
+// Maybe try this for the key?
+//
+// use lazy_static::lazy_static;
+//
+// lazy_static! {
+//     static ref KEY: Hmac<Sha256> = Hmac::new_from_slice(b"horse-battery-staple-gun")
+//         .expect("Key should be parsable");
+// }
+//
+// thread_local!(static KEY: Hmac<Sha256> = Hmac::new_from_slice(b"horse-battery-staple-gun")
+//             .expect("Key should be parsable"));
 
 impl Claims {
     pub fn new(data: AccessData) -> Self {
