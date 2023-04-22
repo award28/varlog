@@ -57,7 +57,6 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        // TODO: Short circuit and 403.
         let claims_res = super::Claims::try_from(&req);
 
         if let Err(e) = claims_res {
