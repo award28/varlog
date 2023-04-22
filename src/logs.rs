@@ -55,7 +55,7 @@ impl<'a> RevLogIter<'a> {
     /// the new position to the offset + the length of the incomplete line.
     fn fill_buffer(&mut self) {
         let mut buf = String::new();
-        while buf.matches("\n").count() < 2 && self.pos != 0 {
+        while buf.matches('\n').count() < 2 && self.pos != 0 {
             // Set the new starting position to either the size of the buffer
             // or the start of the file.
             let mut offset = BUFSIZE;

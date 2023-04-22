@@ -46,7 +46,7 @@ async fn register(
 
     let paths = auth_data.paths.iter()
         .map(|path| {
-            match (path.starts_with("^"), path.ends_with("$")) {
+            match (path.starts_with('^'), path.ends_with('$')) {
                 (true, true) => path.to_owned(),
                 (true, false) => format!("{path}$"),
                 (false, true) => format!("^{path}"),
