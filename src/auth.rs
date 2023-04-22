@@ -10,13 +10,13 @@ const DAY_IN_SECONDS: i64 = 86400;
 
 pub mod middleware;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessData {
     pub paths: Vec<String>,
     pub servers: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
     jti: String, // Claim: JWT, NanoID
     iat: i64, // Claim: Issued At
@@ -43,6 +43,15 @@ impl Claims {
             .expect("Key should be parsable");
         Self::new(data).sign_with_key(&key)
     }
+
+    fn validate(&self) -> Result<(), String> {
+        let now = chrono::offset::Utc::now().timestamp();
+        if now > self.exp {
+            return Err(String::from("Token expired."));
+        }
+
+        Ok(())
+    }
 }
 
 impl TryFrom<&ServiceRequest> for Claims {
@@ -62,6 +71,7 @@ impl TryFrom<&ServiceRequest> for Claims {
             .verify_with_key(&key)
             .map_err(|_| "Invalid authorization token.")?;
 
+        claims.validate()?;
         Ok(claims)
     }
 }

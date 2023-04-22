@@ -2,10 +2,9 @@ use std::future::{ready, Ready};
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error,
+    Error, HttpMessage,
 };
 use futures_util::{future::LocalBoxFuture, FutureExt};
-
 
 
 // There are two steps in middleware processing.
@@ -57,15 +56,14 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let claims_res = super::Claims::try_from(&req);
-
-        if let Err(e) = claims_res {
-            return Box::pin(async move {
+        match super::Claims::try_from(&req) {
+            Err(e) => Box::pin(async move {
                 Err(actix_web::error::ErrorUnauthorized(e))
-            });
+            }),
+            Ok(claims) => {
+                req.extensions_mut().insert(claims);
+                self.service.call(req).boxed_local()
+            }
         }
-
-        // TODO: Pass claims to downstream calls.
-        self.service.call(req).boxed_local()
     }
 }

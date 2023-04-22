@@ -22,8 +22,8 @@ async fn register(
 }
 
 #[get("/logs")]
-async fn log() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
+async fn log(claims: web::ReqData<auth::Claims>) -> impl Responder {
+    HttpResponse::Ok().body(format!("{:?}", claims))
 }
 
 #[actix_web::main]
