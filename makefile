@@ -7,9 +7,13 @@ run:
 run-prod:
 	cargo run --release
 
-up:
+build:
 	docker compose build
+
+up:
 	docker compose up -d
+
+fresh: build up
 
 down:
 	docker compose down
