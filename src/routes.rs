@@ -1,4 +1,4 @@
-use std::{fs::{self, DirEntry}, path::Path, io};
+use std::{fs, path::Path, io};
 
 use actix_web::{web, get, post, HttpResponse, Responder};
 use regex::RegexSet;
@@ -61,7 +61,6 @@ async fn register(
 
 #[derive(Debug, Deserialize)]
 struct LogsRequest {
-    filename: String,
     take: Option<usize>,
     skip: Option<usize>,
     pattern: Option<String>,
@@ -113,15 +112,17 @@ fn visit_dirs(dir: &Path) -> io::Result<Vec<String>> {
 #[get("/logs/{filename}")]
 async fn log(
     claims: web::ReqData<crate::auth::Claims>,
-    filename: String,
+    path: web::Path<(String,)>,
     logs_req: web::Query<LogsRequest>,
 ) -> impl Responder {
-    match claims.data.file_access_authorized(&logs_req.filename) {
+    let (filename,) = path.into_inner();
+    // TODO: Make sure path exists and is a file.
+    match claims.data.file_access_authorized(&filename) {
         true => {
-            let filename = if logs_req.filename.starts_with("/var/log") {
-                logs_req.filename.to_owned()
+            let filename = if filename.starts_with("/var/log") {
+                filename.to_owned()
             } else {
-                format!("/var/log/{}", logs_req.filename)
+                format!("/var/log/{filename}")
             };
 
             let pat = logs_req.pattern.to_owned().unwrap_or(String::new());
@@ -137,7 +138,7 @@ async fn log(
             )
         },
         false => HttpResponse::Forbidden().body(
-            format!("You do not have access to file {}", logs_req.filename),
+            format!("You do not have access to file {}", filename),
         ),
     }
 }
