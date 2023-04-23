@@ -5,4 +5,12 @@ services:
     ports:
       - "8080:8080"
     env_file: .env
-
+  varlog_a:
+    build: .
+    env_file: .env
+  varlog_b:
+    build: .
+    env_file: .env
+  varlog_c:
+    build: .
+    env_file: .env
