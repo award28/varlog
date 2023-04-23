@@ -12,8 +12,9 @@ RUN cargo build --release
 RUN sed -i 's#dummy.rs#src/main.rs#' Cargo.toml
 
 COPY src src
+
 RUN cargo build --release
 
-RUN cargo install --path .
+EXPOSE 8080
 
-CMD ["varlog"]
+CMD ["cargo", "run", "--release"]

@@ -109,13 +109,19 @@ fn visit_dirs(dir: &Path) -> io::Result<Vec<String>> {
     Ok(filenames)
 }
 
-#[get("/logs/{filename}")]
+#[get("/logs/{filename:.*}")]
 async fn log(
     claims: web::ReqData<crate::auth::Claims>,
     path: web::Path<(String,)>,
     logs_req: web::Query<LogsRequest>,
 ) -> impl Responder {
     let (filename,) = path.into_inner();
+
+    if filename.contains("..") {
+        return HttpResponse::Forbidden().body(
+            "The use of the `..` operator is forbidden."
+        );
+    }
 
     // TODO: Make sure path exists and is a file.
     match claims.data.file_access_authorized(&filename) {

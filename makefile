@@ -6,3 +6,10 @@ run:
 
 run-prod:
 	cargo run --release
+
+up:
+	docker compose build
+	docker compose up -d
+
+down:
+	docker compose down
