@@ -10,10 +10,10 @@ server-prod:
 	cargo run --release -p server
 
 app:
-	trunk serve --proxy-backend=https://yew.rs/tutorial --address=0.0.0.0 --port=8000  --open app/index.html
+	trunk serve --proxy-backend=http://localhost:8080/v1 --address=0.0.0.0 --port=8000 app/index.html
 
 app-prod:
-	trunk serve --proxy-backend=https://yew.rs/tutorial --address=0.0.0.0 --port=8000 app/index.html --open --release
+	trunk serve --proxy-backend=https://yew.rs/tutorial --address=0.0.0.0 --port=8000 app/index.html --release
 
 clean:
 	docker rmi varlog/base varlog/app varlog/server
