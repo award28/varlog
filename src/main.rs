@@ -38,9 +38,10 @@ async fn main() -> std::io::Result<()> {
                 .service(
                     web::scope("")
                     .wrap(auth::middleware::AuthRequired::default())
-                    .service(logs::routes::log)
                     .service(logs::routes::logs)
+                    .service(logs::routes::log)
                     .service(servers::routes::servers_logs)
+                    .service(servers::routes::servers_log)
                 )
             )
     })
