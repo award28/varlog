@@ -116,6 +116,7 @@ async fn log(
     logs_req: web::Query<LogsRequest>,
 ) -> impl Responder {
     let (filename,) = path.into_inner();
+
     // TODO: Make sure path exists and is a file.
     match claims.data.file_access_authorized(&filename) {
         true => {

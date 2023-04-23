@@ -1,5 +1,5 @@
-use std::fs::File;
 use std::io::prelude::*;
+use std::fs::File;
 use std::ops::Add;
 
 // 10 KB = 10240
@@ -38,10 +38,9 @@ pub struct RevLogIter<'a> {
 }
 
 /// Go backward through the file, reading 'BUFSIZE' bytes at a time (except
-/// probably the first), until we hit the start of the file or have
-/// read NUMBER newlines.
-/// START_POS is the starting position of the read pointer for the file
-/// associated with FD (may be nonzero).
+/// probably the last), until we hit the start of the file or have read
+/// read NUMBER newlines. START_POS is the starting position of the read
+/// pointer for the file associated with FD (may be nonzero).
 /// END_POS is the file offset of EOF (one larger than offset of last byte).
 /// Return true if successful.
 /// 
