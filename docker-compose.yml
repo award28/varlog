@@ -1,16 +1,16 @@
 version: "3.9"
 services:
   varlog:
-    build: .
+    build: ./server
     ports:
       - "8080:8080"
     env_file: .env
   varlog_a:
-    build: .
+    build: ./server
     env_file: .env
   varlog_b:
-    build: .
+    build: ./server
     env_file: .env
   varlog_c:
-    build: .
+    build: ./server
     env_file: .env

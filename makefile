@@ -1,11 +1,19 @@
+.PHONY: app server
+
 book:
 	cd docs && mdbook serve --open
 
-run:
-	cargo run
+server:
+	cargo run -p server
 
-run-prod:
-	cargo run --release
+server-prod:
+	cargo run --release -p server
+
+app:
+	cargo run -p app
+
+app-prod:
+	cargo run --release -p app
 
 build:
 	docker compose build
