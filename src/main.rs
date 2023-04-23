@@ -8,7 +8,6 @@ use sha2::Sha256;
 
 mod auth;
 mod logs;
-mod routes;
 
 #[derive(Clone)]
 struct AppConfig {
@@ -33,12 +32,12 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .service(
                 web::scope("v1")
-                .service(routes::register)
+                .service(auth::routes::register)
                 .service(
                     web::scope("")
                     .wrap(auth::middleware::AuthRequired::default())
-                    .service(routes::log)
-                    .service(routes::logs)
+                    .service(logs::routes::log)
+                    .service(logs::routes::logs)
                 )
             )
     })

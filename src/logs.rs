@@ -5,6 +5,8 @@ use std::ops::Add;
 // 10 KB = 10240
 const BUFSIZE: u64 = 10240;
 
+pub mod routes;
+
 pub struct RevLogReader {
     fp: File,
     size: u64,

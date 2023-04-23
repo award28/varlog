@@ -10,6 +10,7 @@ use regex::RegexSet;
 const DAY_IN_SECONDS: i64 = 86400;
 
 pub mod middleware;
+pub mod routes;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessData {
