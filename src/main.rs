@@ -6,6 +6,8 @@ use env_logger::Env;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
+mod servers;
+mod http;
 mod auth;
 mod logs;
 
@@ -38,6 +40,7 @@ async fn main() -> std::io::Result<()> {
                     .wrap(auth::middleware::AuthRequired::default())
                     .service(logs::routes::log)
                     .service(logs::routes::logs)
+                    .service(servers::routes::servers_logs)
                 )
             )
     })

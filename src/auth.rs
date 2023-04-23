@@ -22,6 +22,10 @@ impl AccessData {
     pub fn file_access_authorized(&self, filename: &String) -> bool {
         RegexSet::new(self.paths.clone()).unwrap().matches(filename.as_str()).matched_any()
     }
+
+    pub fn server_access_authorized(&self, server: &str) -> bool {
+        RegexSet::new(self.servers.clone()).unwrap().matches(server).matched_any()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,8 +49,9 @@ impl Claims {
         }
     }
 
-    pub fn sign(key: &Hmac<Sha256>, data: AccessData) -> Result<String, Error> {
-        Self::new(data).sign_with_key(key)
+    pub fn sign(key: &Hmac<Sha256>, data: AccessData) -> Result<(Self, String), Error> {
+        let claim = Self::new(data);
+        Ok((claim.clone(), claim.sign_with_key(key)?))
     }
 
     fn validate(&self) -> Result<(), String> {

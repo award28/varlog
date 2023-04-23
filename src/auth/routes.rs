@@ -12,7 +12,9 @@ pub struct AuthRequest {
 
 fn validate_paths(paths: &Vec<String>) -> Result<(), ValidationError> {
     if paths.iter().any(|path| path.contains("..")) {
-        return Err(ValidationError::new("Parent directory access is forbidden."));
+        return Err(ValidationError::new(
+                "Parent directory access is forbidden."
+        ));
     }
 
     // Performs validation that the regex is properly formatted.
@@ -24,6 +26,13 @@ fn validate_paths(paths: &Vec<String>) -> Result<(), ValidationError> {
 
     Ok(())
 }
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct TokenResponse {
+    token: String,
+    expires: i64,
+}
 
 #[post("/auth/register")]
 async fn register(
@@ -31,7 +40,11 @@ async fn register(
     auth_data: web::Json<AuthRequest>,
 ) -> impl Responder {
     if let Err(e) = auth_data.validate() {
-        return HttpResponse::BadRequest().body(format!("{e}"));
+        return HttpResponse::BadRequest().json(
+            crate::http::HttpError {
+                error: format!("{e}"),
+            }
+        );
     }
 
     let paths = auth_data.paths.iter()
@@ -50,9 +63,15 @@ async fn register(
         servers: auth_data.servers.clone()
     };
 
-    // TODO: Respond with JSON Message
     match crate::auth::Claims::sign(&config.key, access_data) {
-        Ok(token_str) => HttpResponse::Ok().body(token_str),
-        Err(e) => HttpResponse::BadRequest().body(format!("{e}")),
+        Ok((claim, token)) => HttpResponse::Ok().json(TokenResponse {
+            token,
+            expires: claim.exp,
+        }),
+        Err(e) => HttpResponse::BadRequest().json(
+            crate::http::HttpError {
+                error: format!("{e}"),
+            }
+        ),
     }
 }

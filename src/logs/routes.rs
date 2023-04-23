@@ -15,9 +15,7 @@ async fn logs(
 ) -> impl Responder {
     let paths_res = visit_dirs(Path::new("/var/log"));
     if paths_res.is_err() {
-        return HttpResponse::InternalServerError().body(
-            "Internal Server Error",
-        );
+        return crate::http::internal_err();
     }
     let files = paths_res.unwrap();
     let files = files
@@ -31,9 +29,7 @@ async fn logs(
         .filter(|filename| claims.data.file_access_authorized(filename))
         .collect::<Vec<_>>();
 
-    HttpResponse::Ok().body(
-        format!("{:#?}", files),
-    )
+    HttpResponse::Ok().json(files)
 }
 
 fn visit_dirs(dir: &Path) -> io::Result<Vec<String>> {
@@ -61,8 +57,10 @@ async fn log(
     let (filename,) = path.into_inner();
 
     if filename.contains("..") {
-        return HttpResponse::Forbidden().body(
-            "The use of the `..` operator is forbidden."
+        return HttpResponse::Forbidden().json(
+            crate::http::HttpError {
+                error: String::from("The use of the `..` operator is forbidden."),
+            }
         );
     }
 
@@ -83,12 +81,14 @@ async fn log(
                 .take(logs_req.take.unwrap_or(10))
                 .collect::<Vec<_>>();
 
-            HttpResponse::Ok().body(
-                lines.join("\n"),
+            HttpResponse::Ok().json(
+                lines,
             )
         },
-        false => HttpResponse::Forbidden().body(
-            format!("You do not have access to file {}", filename),
+        false => HttpResponse::Forbidden().json(
+            crate::http::HttpError {
+                error: format!("You do not have access to file {}", filename),
+            }
         ),
     }
 }
