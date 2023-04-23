@@ -87,7 +87,7 @@ async fn log(
         },
         false => HttpResponse::Forbidden().json(
             crate::http::HttpError {
-                error: format!("You do not have access to file {}", filename),
+                error: format!("You do not have access to file {filename}"),
             }
         ),
     }
