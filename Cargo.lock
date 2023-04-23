@@ -246,10 +246,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "app"
-version = "0.1.0"
-
-[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1469,25 +1465,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "server"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "chrono",
- "dotenv",
- "env_logger",
- "futures-util",
- "hmac",
- "jwt",
- "nanoid",
- "regex",
- "reqwest",
- "serde",
- "sha2",
- "validator",
-]
-
-[[package]]
 name = "sha1"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1804,6 +1781,29 @@ checksum = "111abfe30072511849c5910134e8baf8dc05de4c0e5903d681cbd5c9c4d611e3"
 dependencies = [
  "proc-macro2",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "varlog_app"
+version = "0.1.0"
+
+[[package]]
+name = "varlog_server"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "chrono",
+ "dotenv",
+ "env_logger",
+ "futures-util",
+ "hmac",
+ "jwt",
+ "nanoid",
+ "regex",
+ "reqwest",
+ "serde",
+ "sha2",
+ "validator",
 ]
 
 [[package]]

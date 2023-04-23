@@ -1,4 +1,4 @@
-.PHONY: app server
+.PHONY: app server clean
 
 book:
 	cd docs && mdbook serve --open
@@ -15,11 +15,16 @@ app:
 app-prod:
 	cargo run --release -p app
 
+clean:
+	docker rmi varlog/base varlog/app varlog/server
+
 build:
-	docker compose build
+	docker build -f ./docker/build.Dockerfile . --tag varlog/base 
+	docker build -f ./docker/server.Dockerfile . --tag varlog/server 
+	docker build -f ./docker/app.Dockerfile . --tag varlog/app 
 
 up:
-	docker compose up -d
+	docker compose up -d || (make build && make up)
 
 fresh: build up
 
@@ -28,3 +33,6 @@ down:
 
 ps:
 	docker compose ps
+
+logs:
+	docker compose logs -f
