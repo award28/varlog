@@ -5,17 +5,17 @@ use std::ops::Add;
 // 10 KB = 10240
 const BUFSIZE: u64 = 10240;
 
-pub struct LogReader {
+pub struct RevLogReader {
     fp: File,
     size: u64,
 }
 
-impl LogReader {
+impl RevLogReader {
     pub fn new(filename: String) -> Self {
         let fp = File::open(filename).unwrap();
         let size = fp.metadata().unwrap().len();
 
-        LogReader {
+        RevLogReader {
             fp,
             size,
         }
@@ -32,7 +32,7 @@ impl LogReader {
 }
 
 pub struct RevLogIter<'a> {
-    log_reader: &'a mut LogReader,
+    log_reader: &'a mut RevLogReader,
     buffered: Vec<String>,
     pos: u64,
 }
@@ -49,38 +49,46 @@ pub struct RevLogIter<'a> {
 /// https://git.savannah.gnu.org/cgit/coreutils.git/tree/src/tail.c#n525
 impl<'a> RevLogIter<'a> {
 
+    fn read(&mut self) -> String {
+        let mut offset = BUFSIZE;
+
+        // Set the new starting position to either the size of the buffer
+        // or the start of the file.
+        self.pos = if self.pos < BUFSIZE {
+            offset += BUFSIZE - self.pos ;
+            0
+        } else {
+            self.pos - BUFSIZE
+        };
+
+        // Seek to the new start position.
+        self.log_reader.fp
+            .seek(std::io::SeekFrom::Start(self.pos))
+            .unwrap();
+
+        let mut buf = String::new();
+        // Read to buffer.
+        self.log_reader.fp.try_clone()
+            .unwrap()
+            .take(offset)
+            .read_to_string(&mut buf)
+            .unwrap();
+
+        buf
+    }
+
     /// Fills the buffer with the next lines that take up BUFSIZE space.
     /// If there line is longer than BUFSIZE, keep reading in BUFSIZE chunks
     /// until a newline is reached. If the new start position isn't 0, set
     /// the new position to the offset + the length of the incomplete line.
     fn fill_buffer(&mut self) {
         let mut buf = String::new();
+
         // TODO: Can we do better than matching the buffer counts?
         while buf.matches('\n').count() < 2 && self.pos != 0 {
-            // Set the new starting position to either the size of the buffer
-            // or the start of the file.
-            let mut offset = BUFSIZE;
-            self.pos = if self.pos < BUFSIZE {
-                offset += BUFSIZE - self.pos ;
-                0
-            } else {
-                self.pos - BUFSIZE
-            };
-
-            // Seek to the new start position.
-            self.log_reader.fp
-                .seek(std::io::SeekFrom::Start(self.pos))
-                .unwrap();
-
-            let mut cur_buf  = String::new();
-            // Read to buffer.
-            self.log_reader.fp.try_clone()
-                .unwrap()
-                .take(offset)
-                .read_to_string(&mut cur_buf)
-                .unwrap();
-            buf = cur_buf.add(buf.as_str());
+            buf = self.read().add(buf.as_str());
         }
+
         let mut lines = buf.lines()
             .map(|s| s.to_owned())
             .collect::<Vec<String>>();

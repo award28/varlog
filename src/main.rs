@@ -70,6 +70,9 @@ async fn register(
 #[derive(Debug, Deserialize)]
 struct LogsRequest {
     filename: String,
+    take: Option<usize>,
+    skip: Option<usize>,
+    pattern: Option<String>,
 }
 
 #[get("/logs")]
@@ -77,10 +80,24 @@ async fn log(
     claims: web::ReqData<auth::Claims>,
     logs_req: web::Query<LogsRequest>,
 ) -> impl Responder {
-    match claims.data.can_access_file(&logs_req.filename) {
+    match claims.data.file_access_authorized(&logs_req.filename) {
         true => {
+            let filename = if logs_req.filename.starts_with("/var/log") {
+                logs_req.filename.to_owned()
+            } else {
+                format!("/var/log/{}", logs_req.filename)
+            };
+
+            let pat = logs_req.pattern.to_owned().unwrap_or(String::new());
+            let lines = logs::RevLogReader::new(filename)
+                .iter()
+                .filter(|line| line.contains(pat.as_str()))
+                .skip(logs_req.skip.unwrap_or(0))
+                .take(logs_req.take.unwrap_or(10))
+                .collect::<Vec<_>>();
+
             HttpResponse::Ok().body(
-                "Access granted!",
+                lines.join("\n"),
             )
         },
         false => HttpResponse::Forbidden().body(
@@ -100,12 +117,6 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
-    logs::LogReader::new(String::from("logged.log"))
-        .iter()
-        .take(10)
-        .for_each(|line| {
-            println!("{}", line);
-        });
     HttpServer::new(|| {
         let key = Hmac::new_from_slice(
             env::var("JWT_SIGNING_KEY")

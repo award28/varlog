@@ -18,7 +18,7 @@ pub struct AccessData {
 }
 
 impl AccessData {
-    pub fn can_access_file(&self, filename: &String) -> bool {
+    pub fn file_access_authorized(&self, filename: &String) -> bool {
         RegexSet::new(self.paths.clone()).unwrap().matches(filename.as_str()).matched_any()
     }
 }
