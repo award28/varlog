@@ -19,16 +19,6 @@ main {
   text-align: center;
 }
 
-.logo {
-  height: 20em;
-}
-
-.heart:after {
-  content: "❤️";
-
-  font-size: 1.75em;
-}
-
 h1 + .subtitle {
   display: block;
   margin-top: -1em;

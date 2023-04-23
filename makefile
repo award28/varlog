@@ -10,10 +10,10 @@ server-prod:
 	cargo run --release -p server
 
 app:
-	cargo run -p app
+	trunk serve --proxy-backend=https://yew.rs/tutorial --address=0.0.0.0 --port=8000  --open app/index.html
 
 app-prod:
-	cargo run --release -p app
+	trunk serve --proxy-backend=https://yew.rs/tutorial --address=0.0.0.0 --port=8000 app/index.html --open --release
 
 clean:
 	docker rmi varlog/base varlog/app varlog/server
@@ -24,7 +24,7 @@ build:
 	docker build -f ./docker/app.Dockerfile . --tag varlog/app 
 
 up:
-	docker compose up -d || (make build && make up)
+	docker compose up -d
 
 fresh: build up
 

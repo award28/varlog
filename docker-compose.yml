@@ -3,18 +3,9 @@ services:
   app:
     image: varlog/app:latest
     ports:
-      - "8000:8080"
+      - "8000:8000"
   server:
     image: varlog/server:latest
     ports:
       - "8080:8080"
     env_file: .env
-      # varlog_a:
-      #   build: ./server
-      #   env_file: .env
-      # varlog_b:
-      #   build: ./server
-      #   env_file: .env
-      # varlog_c:
-      #   build: ./server
-      #   env_file: .env

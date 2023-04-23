@@ -1,7 +1,8 @@
 mod app;
+mod myapp;
+mod videos;
 
-use app::App;
 
 fn main() {
-    yew::Renderer::<App>::new().render();
+    yew::Renderer::<myapp::App>::new().render();
 }
