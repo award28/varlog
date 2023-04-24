@@ -1,9 +1,10 @@
 use gloo_console::log;
 use gloo_net::http::Request;
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use yew::prelude::*;
 
+use crate::components::forms::FormInput;
+use crate::hooks::use_input_state;
 use crate::molecules::list_group::*;
 use crate::organisms::header::Header;
 
@@ -12,24 +13,15 @@ pub struct LogRetrieverProps {
     pub token: String,
 }
 
-struct GetLogsRequest<'a> {
-    filename: &'a str,
-    pattern: &'a str,
+#[derive(Debug, Clone)]
+struct GetLogsRequest {
+    filename: String,
+    pattern: String,
     skip: usize,
     take: usize,
 }
 
-impl<'a> From<GetLogsRequest<'a>> for Vec<(&'a str, String)> {
-    fn from(req: GetLogsRequest<'a>) -> Self {
-        vec![
-            ("pattern", req.pattern.to_owned()),
-            ("skip", format!("{}", req.skip)),
-            ("take", format!("{}", req.take)),
-        ]
-    }
-}
-
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct VarlogClient {
     token: String,
 }
@@ -63,10 +55,14 @@ impl VarlogClient {
         Self::execute(req).await
     }
 
-    async fn get_log<'a>(&self, logs_req: GetLogsRequest<'a>) -> Vec<String> {
-        let filename = logs_req.filename;
+    async fn get_log(&self, logs_req: GetLogsRequest) -> Vec<String> {
+        let filename = logs_req.filename.as_str();
         let req = self.request(format!("/v1/logs/{filename}").as_str())
-            .query(Vec::<(&str, String)>::from(logs_req));
+            .query([
+                ("pattern", logs_req.pattern.to_owned()),
+                ("skip", format!("{}", logs_req.skip)),
+                ("take", format!("{}", logs_req.take)),
+            ]);
         Self::execute(req).await
     }
 }
@@ -144,10 +140,59 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
         </ListGroup>
     };
 
-    let pattern = use_state(|| String::default());
-    let skip = use_state(|| 0);
-    let take = use_state(|| 10);
+
+    let (pattern, on_pattern_change) = use_input_state(String::default());
+    let (skip, on_skip_change) = use_input_state(0);
+    let (take, on_take_change) = use_input_state(10);
     let content = use_state(|| String::from("Logs will show here."));
+
+    let on_skip_change = {
+        let on_skip_change = on_skip_change.clone();
+        Callback::from(move |value: String| {
+            let value = value.parse::<usize>()
+                .expect("value to be usize parsable.");
+            on_skip_change.emit(value);
+        })
+    };
+    let on_take_change = {
+        let on_take_change = on_take_change.clone();
+        Callback::from(move |value: String| {
+            let value = value.parse::<usize>()
+                .expect("value to be usize parsable.");
+            on_take_change.emit(value);
+        })
+    };
+
+
+    let on_submit = {
+        let logfile = logfile.clone();
+        let pattern = pattern.clone();
+        let skip = skip.clone();
+        let take = take.clone();
+        let content = content.clone();
+        let varlog_client = varlog_client.clone();
+        Callback::from(move |_| {
+            if logfile.is_none() {
+                content.set(String::from("You must select a logfile."));
+                return;
+            }
+            let filename = (*logfile).as_ref().unwrap().clone();
+            let pattern: String = (*pattern).clone();
+            let req = GetLogsRequest {
+                filename,
+                pattern,
+                skip: (*skip).clone(),
+                take: (*take).clone(),
+            };
+            let varlog_client = varlog_client.clone();
+            let content = content.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let fetched_content = varlog_client.get_log(req).await;
+                content.set(fetched_content.join("\n"));
+            });
+           
+        })
+    };
 
     html! {
         <div class="container-center">
@@ -167,7 +212,7 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
                 <label class="visually-hidden" for="inlineFormInputGroupUsername">{ "Username" }</label>
                 <div class="input-group">
                   <div class="input-group-text">{ "Pattern" }</div>
-                  <input type="text" class="form-control" value={ (*pattern).clone() } />
+                    <FormInput input_type="text" onchange={on_pattern_change.clone()} />
                 </div>
               </div>
 
@@ -175,7 +220,7 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
                 <label class="visually-hidden" for="inlineFormInputGroupUsername">{ "Username" }</label>
                 <div class="input-group">
                   <div class="input-group-text">{ "Skip" }</div>
-                  <input type="number" class="form-control"  value={ format!("{}", *skip) } />
+                    <FormInput input_type="number" onchange={on_skip_change.clone()} />
                 </div>
               </div>
            
@@ -183,12 +228,12 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
                 <label class="visually-hidden" for="inlineFormInputGroupUsername">{ "Username" }</label>
                 <div class="input-group">
                   <div class="input-group-text">{ "Take" }</div>
-                  <input type="number" class="form-control" value={ format!("{}", *take) } />
+                    <FormInput input_type="number" onchange={on_take_change.clone()} />
                 </div>
               </div>
            
               <div class="col-12">
-                <button type="submit" class="btn btn-primary">{ "Submit" }</button>
+                <button type="submit" class="btn btn-primary" onclick={on_submit}>{ "Submit" }</button>
               </div>
             </form>
             <hr />

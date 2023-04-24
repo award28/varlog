@@ -4,6 +4,7 @@ use web_sys::{EventTarget, HtmlInputElement};
 
 #[derive(Properties, PartialEq)]
 pub struct FormInputProps {
+    #[prop_or_default]
     pub label: String,
     pub input_type: String,
     pub onchange: Callback<String>,
@@ -17,11 +18,19 @@ pub fn form_input(FormInputProps {
 }: &FormInputProps) -> Html {
     let on_change = onchange.clone();
 
+    let label_html = if !label.is_empty() {
+        html! {
+            <label for={ label.clone() } class="form-label">
+                {label.clone()}
+            </label>
+        }
+    } else {
+        html!{}
+    };
+
     html! {
         <>
-            <label for={ label.clone() } class="form-label">
-                {label}
-            </label>
+        { label_html }
             <input
                 type={ input_type.clone() }
                 class="form-control"
