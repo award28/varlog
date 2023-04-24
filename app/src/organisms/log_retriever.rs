@@ -1,4 +1,7 @@
 use gloo_console::log;
+use gloo_net::http::Request;
+use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use yew::prelude::*;
 
 use crate::molecules::list_group::*;
@@ -9,8 +12,68 @@ pub struct LogRetrieverProps {
     pub token: String,
 }
 
+struct GetLogsRequest<'a> {
+    filename: &'a str,
+    pattern: &'a str,
+    skip: usize,
+    take: usize,
+}
+
+impl<'a> From<GetLogsRequest<'a>> for Vec<(&'a str, String)> {
+    fn from(req: GetLogsRequest<'a>) -> Self {
+        vec![
+            ("pattern", req.pattern.to_owned()),
+            ("skip", format!("{}", req.skip)),
+            ("take", format!("{}", req.take)),
+        ]
+    }
+}
+
+#[derive(Clone)]
+struct VarlogClient {
+    token: String,
+}
+
+impl VarlogClient {
+    fn new<'a> (token: &'a str) -> Self {
+        let token = format!("Bearer {token}");
+        Self { token }
+    }
+
+    fn request(&self, url: &str) -> Request {
+        Request::new(url)
+            .header(
+                "Authorization",
+                self.token.as_str(),
+            )
+    }
+
+    async fn execute<'de, T>(req: Request) -> T 
+        where T: DeserializeOwned
+    {
+            // TODO: Handle error case where file Authorization isn't permitted.
+            req.send().await
+            .expect("The request to succeed")
+            .json().await
+            .expect("The request to be a vector of strings")
+    }
+
+    async fn get_logs(&self) -> Vec<String> {
+        let req = self.request(format!("/v1/logs").as_str());
+        Self::execute(req).await
+    }
+
+    async fn get_log<'a>(&self, logs_req: GetLogsRequest<'a>) -> Vec<String> {
+        let filename = logs_req.filename;
+        let req = self.request(format!("/v1/logs/{filename}").as_str())
+            .query(Vec::<(&str, String)>::from(logs_req));
+        Self::execute(req).await
+    }
+}
+
 #[function_component(LogRetriever)]
 pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
+    let varlog_client = VarlogClient::new(token.as_str());
     let used_servers = use_state(|| vec![]);
     let used_servers_handle = {
         let used_servers = used_servers.clone();
@@ -49,11 +112,25 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
             logfile.set(Some(file));
         })
     };
+    let logs = use_state(|| vec![]);
+    {
+        let logs = logs.clone();
+        let varlog_client = varlog_client.clone();
+        use_effect_with_deps(move |_| {
+            let logs = logs.clone();
+            let varlog_client = varlog_client.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let fetched_logs = varlog_client.get_logs().await;
+                logs.set(fetched_logs);
+            });
+            || ()
+        }, ());
+    }
+
     let logs = html! {
         <ListGroup>
         { 
-            // TODO: Replace this list with dynamic data from API
-            for vec!["daily.out", "weekly.out", "apt/file.log"].into_iter()
+            for logs.iter()
             .map(|value| { html_nested! {
                 <ListGroupItem>
                     <RadioItem
