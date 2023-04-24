@@ -1,6 +1,6 @@
 use yew::prelude::*;
 
-use crate::molecules::{auth_form::AuthForm, header::Header, log_retriever::LogRetriever};
+use crate::organisms::{auth_form::AuthForm, header::Header, log_retriever::LogRetriever};
 
 #[function_component(App)]
 pub fn app() -> Html {
@@ -17,7 +17,7 @@ pub fn app() -> Html {
 
     html! {
         <div class="col-lg-8 mx-auto p-4 py-md-5">
-        <Header />
+        <Header title="VARLOG" />
         <main>
         if let Some(token) = token {
             <LogRetriever token={token.to_owned()} />

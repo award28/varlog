@@ -5,7 +5,6 @@ use crate::videos::{VideosList, VideoDetails, Video};
 
 #[function_component(App)]
 pub fn app() -> Html {
-
     let videos = use_state(|| vec![]);
     {
         let videos = videos.clone();
