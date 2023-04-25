@@ -18,3 +18,4 @@ COPY ./server ./server
 RUN mkdir app && echo echo "fn main() {}" > ./app/main.rs
 COPY ./app ./app
 
+RUN cargo build --release

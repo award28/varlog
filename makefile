@@ -1,4 +1,4 @@
-.PHONY: app server clean
+.PHONY: app server clean registry
 
 book:
 	cd docs && mdbook serve --open
@@ -6,14 +6,11 @@ book:
 server:
 	cargo run -p server
 
-server-prod:
-	cargo run --release -p server
+registry:
+	cargo run -p registry
 
 app:
 	trunk serve --proxy-backend=http://localhost:8080/v1 --address=0.0.0.0 --port=8000 app/index.html
-
-app-prod:
-	trunk serve --proxy-backend=https://yew.rs/tutorial --address=0.0.0.0 --port=8000 app/index.html --release
 
 clean:
 	docker rmi varlog/base varlog/app varlog/server

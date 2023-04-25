@@ -6,6 +6,8 @@ services:
       - "8000:8000"
   registry:
     image: varlog/registry:latest
+    ports:
+      - "8888:8080"
   server:
     image: varlog/server:latest
     depends_on:
