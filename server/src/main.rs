@@ -1,8 +1,8 @@
-use std::env;
+use std::{env, fs::File};
 
 use actix_web::{web, middleware, App, HttpServer};
 use dotenv::dotenv;
-use env_logger::Env;
+use simplelog::*;
 use hmac::{Hmac, Mac};
 use serde::Serialize;
 use sha2::Sha256;
@@ -27,7 +27,12 @@ struct RegistryRequest {
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
-    env_logger::init_from_env(Env::default().default_filter_or("info"));
+    CombinedLogger::init(
+        vec![
+        TermLogger::new(LevelFilter::Info, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
+        WriteLogger::new(LevelFilter::Info, Config::default(), File::create("/var/log/varlog.log").unwrap()),
+        ]
+    ).unwrap();
 
     let key = Hmac::new_from_slice(
         env::var("JWT_SIGNING_KEY")
