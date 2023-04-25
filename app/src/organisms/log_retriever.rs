@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use gloo_console::log;
 use gloo_net::http::Request;
 use serde::de::DeserializeOwned;
@@ -16,6 +18,7 @@ pub struct LogRetrieverProps {
 #[derive(Debug, Clone)]
 struct GetLogsRequest {
     filename: String,
+    servers: Vec<String>,
     pattern: String,
     skip: usize,
     take: usize,
@@ -50,8 +53,29 @@ impl VarlogClient {
             .expect("The request to be a vector of strings")
     }
 
+    async fn get_servers(&self) -> Vec<String> {
+        let req = self.request(format!("/v1/servers").as_str());
+        Self::execute(req).await
+    }
+
     async fn get_logs(&self) -> Vec<String> {
         let req = self.request(format!("/v1/logs").as_str());
+        Self::execute(req).await
+    }
+
+    async fn get_servers_log(&self, logs_req: GetLogsRequest) -> HashMap<String, Vec<String>> {
+        let filename = logs_req.filename.as_str();
+        let servers = logs_req.servers.clone();
+        let q = servers.into_iter()
+            .map(|server| ("server", server))
+            .collect::<Vec<_>>();
+        let req = self.request(format!("/v1/servers/logs/{filename}").as_str())
+            .query(q)
+            .query([
+                ("pattern", logs_req.pattern.to_owned()),
+                ("skip", format!("{}", logs_req.skip)),
+                ("take", format!("{}", logs_req.take)),
+            ]);
         Self::execute(req).await
     }
 
@@ -85,11 +109,25 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
             used_servers.set(servers);
         })
     };
-    let servers = html! {
+    let servers = use_state(|| vec![]);
+    {
+        let servers = servers.clone();
+        let varlog_client = varlog_client.clone();
+        use_effect_with_deps(move |_| {
+            let servers = servers.clone();
+            let varlog_client = varlog_client.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let fetched_servers = varlog_client.get_servers().await;
+                servers.set(fetched_servers);
+            });
+            || ()
+        }, ());
+    }
+
+    let servers_list_group = html! {
         <ListGroup>
         { 
-            // TODO: Replace this list with dynamic data from API
-            for vec!["server1", "server2", "server3"].into_iter()
+            for servers.iter()
             .map(|server| { html_nested! {
                 <ListGroupItem>
                     <CheckboxItem 
@@ -165,6 +203,7 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
 
 
     let on_submit = {
+        let servers = used_servers.clone();
         let logfile = logfile.clone();
         let pattern = pattern.clone();
         let skip = skip.clone();
@@ -176,10 +215,12 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
                 content.set(String::from("You must select a logfile."));
                 return;
             }
+            let servers = (*servers).clone();
             let filename = (*logfile).as_ref().unwrap().clone();
             let pattern: String = (*pattern).clone();
             let req = GetLogsRequest {
                 filename,
+                servers,
                 pattern,
                 skip: (*skip).clone(),
                 take: (*take).clone(),
@@ -187,7 +228,13 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
             let varlog_client = varlog_client.clone();
             let content = content.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                let fetched_content = varlog_client.get_log(req).await;
+                let fetched_content = varlog_client.get_servers_log(req).await;
+                let fetched_content = fetched_content.into_iter()
+                    .map(|(server, logs)| {
+                        let hr = String::from("---");
+                        [hr.clone(), server, hr, logs.join("\t\n")].join("\n")
+                    })
+                    .collect::<Vec<_>>();
                 content.set(fetched_content.join("\n"));
             });
            
@@ -196,10 +243,10 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
 
     html! {
         <div class="container-center">
-            <div class="row align-items-center">
+            <div class="row align-items-start">
                 <div class="col">
                     <Header title="Available Servers" />
-                    { servers }
+                    { servers_list_group }
                 </div>
                 <div class="col">
                     <Header title="Available Logs" />

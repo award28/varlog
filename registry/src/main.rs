@@ -19,7 +19,10 @@ async fn register(
     req: web::Json<RegisterRequest>,
 ) -> impl Responder {
     if let Ok(mut hostnames) = app_state.hostnames.lock() {
-        (*hostnames).push(req.hostname.clone());
+        let hostname = req.hostname.clone();
+        if !(*hostnames).contains(&hostname) {
+            (*hostnames).push(hostname);
+        }
         HttpResponse::NoContent().finish()
     } else {
         HttpResponse::InternalServerError().finish()
@@ -59,7 +62,7 @@ async fn main() -> std::io::Result<()> {
         .service(register)
         .service(registered)
     )
-    .bind(("0.0.0.0", 8080))?
+    .bind(("0.0.0.0", 8888))?
     .run()
     .await
 

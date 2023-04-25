@@ -1,8 +1,10 @@
 use std::{fmt, collections::HashMap};
-use serde::de::{Deserialize, Deserializer, Visitor, MapAccess};
+use serde::{de::{Deserializer, Visitor, MapAccess}, Deserialize};
 
 
 use actix_web::{web, get, HttpResponse, Responder, HttpRequest};
+
+use crate::logs::routes::LogsRequest;
 #[derive(Debug)]
 struct ServersLogsRequest {
     servers: Vec<String>,
@@ -26,7 +28,7 @@ impl<'de> Deserialize<'de> for ServersLogsRequest {
             where
                 V: MapAccess<'de>
             {
-                let mut servers:  Vec<String> = Vec::default();
+                let mut servers: Vec<String> = Vec::default();
                 while let Some(key) = map.next_key()? {
                     match key {
                         "server" => {
@@ -43,6 +45,33 @@ impl<'de> Deserialize<'de> for ServersLogsRequest {
         deserializer.deserialize_identifier(FieldVisitor)
     }
 }
+
+#[derive(Deserialize)]
+struct ServersResponse {
+    hostnames: Vec<String>,
+}
+
+#[get("/servers")]
+async fn available_servers(
+    config: web::Data<crate::AppConfig>,
+    claims: web::ReqData<crate::auth::Claims>,
+) -> impl Responder {
+    let registry_url = (*config.registry_url).to_owned();
+    let res: Vec<String> = reqwest::get(format!("{registry_url}/registered"))
+        .await
+        .unwrap()
+        .json::<ServersResponse>()
+        .await
+        .unwrap()
+        .hostnames
+        .into_iter()
+        .filter(|server| {
+            claims.data.server_access_authorized(server.as_str())
+        })
+        .collect();
+    HttpResponse::Ok().json(res)
+}
+
 
 #[get("/servers/logs")]
 async fn servers_logs(
@@ -108,6 +137,7 @@ async fn servers_log(
     path: web::Path<(String,)>,
     claims: web::ReqData<crate::auth::Claims>,
     servers_logs_req: web::Query<ServersLogsRequest>,
+    logs_req: web::Query<crate::logs::routes::LogsRequest>,
 ) -> impl Responder {
     let (filename,) = path.into_inner();
 
@@ -131,6 +161,7 @@ async fn servers_log(
             server.as_str(),
             filename.as_str(),
             auth_header,
+            &logs_req,
             ).await.unwrap();
         server_logs_map.insert(server, logs);
     }
@@ -145,13 +176,21 @@ async fn log_from_server(
     server: &str,
     filename: &str,
     auth_header: &str,
+    logs_req: &LogsRequest,
 ) -> Result<Vec<String>, String> {
     // TODO: Handle unwraps in this request properly.
     // TODO: Passthrough query args.
     let client = reqwest::Client::new();
+   let pat = logs_req.pattern.to_owned().unwrap_or(String::new());
+
     let lines = client
         .get(format!("http://{server}/v1/logs/{filename}"))
         .header(reqwest::header::AUTHORIZATION, auth_header)
+        .query(&[
+            ("pattern", pat),
+            ("skip", format!("{}", logs_req.skip.unwrap_or(0))),
+            ("take", format!("{}", logs_req.take.unwrap_or(10)))
+        ])
         .send()
         .await
         .unwrap()

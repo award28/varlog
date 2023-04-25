@@ -7,8 +7,8 @@ services:
   registry:
     image: varlog/registry:latest
     ports:
-      - "8888:8080"
-  server:
+      - "8888:8888"
+  primary:
     image: varlog/server:latest
     depends_on:
       - registry
@@ -16,8 +16,8 @@ services:
       - "8080:8080"
     env_file: .env
     environment:
-      HOSTNAME: "server:8080"
-      REGISTRY_URL: "http://registry:8080"
+      HOSTNAME: "primary:8080"
+      REGISTRY_URL: "http://registry:8888"
   secondary:
     image: varlog/server:latest
     depends_on:
@@ -27,7 +27,7 @@ services:
     env_file: .env
     environment:
       HOSTNAME: "secondary:8080"
-      REGISTRY_URL: "http://registry:8080"
+      REGISTRY_URL: "http://registry:8888"
   teritary:
     image: varlog/server:latest
     depends_on:
@@ -37,4 +37,4 @@ services:
     env_file: .env
     environment:
       HOSTNAME: "teritary:8080"
-      REGISTRY_URL: "http://registry:8080"
+      REGISTRY_URL: "http://registry:8888"

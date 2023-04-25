@@ -15,8 +15,7 @@ mod logs;
 #[derive(Clone)]
 struct AppConfig {
     key: Hmac<Sha256>,
-    #[allow(dead_code)]
-    hostname: String,
+    registry_url: String,
 }
 
 #[derive(Serialize)]
@@ -30,37 +29,41 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
+    let key = Hmac::new_from_slice(
+        env::var("JWT_SIGNING_KEY")
+        .expect("JWT signing key should be found in the environment.")
+        .as_bytes(),
+    )
+        .expect("JWT signing key should be parsable.");
 
-    let hostname = env::var("HOSTNAME")
-        .expect("Hostname should be found in the environment.");
 
     let registry_url = env::var("REGISTRY_URL")
         .expect("Registry should be found in the environment.");
 
-    println!("Registering hostname...");
-    let client = reqwest::Client::new();
-    let resp = client.post(format!("{registry_url}/register"))
-        .json(&RegistryRequest { hostname })
-        .send().await;
+    let hostname = env::var("HOSTNAME")
+        .expect("Hostname should be found in the environment.");
 
-    if let Err(e) = resp {
-        println!("Error while registering hostname: {}.", e);
-    } else {
-        println!("Successfully registered hostname.");
+    println!("Registering hostname...");
+    {
+        let registry_url = registry_url.clone();
+        let client = reqwest::Client::new();
+        let resp = client.post(format!("{registry_url}/register"))
+            .json(&RegistryRequest { hostname })
+            .send().await;
+
+        if let Err(e) = resp {
+            println!("Error while registering hostname: {}.", e);
+        } else {
+            println!("Successfully registered hostname.");
+        }
     }
 
-    HttpServer::new(|| {
-        let key = Hmac::new_from_slice(
-            env::var("JWT_SIGNING_KEY")
-            .expect("JWT signing key should be found in the environment.")
-            .as_bytes(),
-        ).expect("JWT signing key should be parsable.");
-
-        let hostname = env::var("HOSTNAME")
-            .expect("Hostname should be found in the environment.");
-
+    HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(AppConfig{ key, hostname }))
+            .app_data(web::Data::new(AppConfig{ 
+                key: key.clone(), 
+                registry_url: registry_url.clone(),
+            }))
             .wrap(middleware::Logger::default())
             .service(
                 web::scope("v1")
@@ -68,10 +71,11 @@ async fn main() -> std::io::Result<()> {
                 .service(
                     web::scope("")
                     .wrap(auth::middleware::AuthRequired::default())
-                    .service(logs::routes::logs)
                     .service(logs::routes::log)
-                    .service(servers::routes::servers_logs)
+                    .service(logs::routes::logs)
+                    .service(servers::routes::available_servers)
                     .service(servers::routes::servers_log)
+                    .service(servers::routes::servers_logs)
                 )
             )
     })

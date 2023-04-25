@@ -1,10 +1,5 @@
 FROM rust:1.67 AS builder
 
-# note that this might take a while to install, because it compiles everything from scratch
-# Trunk also provides prebuilt binaries for a number of major package managers
-# See https://trunkrs.dev/#install for further details
-RUN cargo install --locked trunk
-
 WORKDIR /usr/src/
 
 COPY Cargo.toml Cargo.lock ./
@@ -17,5 +12,3 @@ COPY ./server ./server
 
 RUN mkdir app && echo echo "fn main() {}" > ./app/main.rs
 COPY ./app ./app
-
-RUN cargo build --release

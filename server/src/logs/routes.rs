@@ -3,10 +3,10 @@ use std::{fs, path::Path, io};
 use actix_web::{web, get, HttpResponse, Responder};
 use serde::Deserialize;
 #[derive(Debug, Deserialize)]
-struct LogsRequest {
-    take: Option<usize>,
-    skip: Option<usize>,
-    pattern: Option<String>,
+pub struct LogsRequest {
+    pub take: Option<usize>,
+    pub skip: Option<usize>,
+    pub pattern: Option<String>,
 }
 
 #[get("/logs")]
