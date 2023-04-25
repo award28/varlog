@@ -16,4 +16,12 @@ COPY app/Cargo.toml ./app/
 RUN echo "fn main() {}" > ./app/dummy.rs
 RUN sed -i 's#src/main.rs#dummy.rs#' ./app/Cargo.toml
 
+# Build for the server
 RUN cargo build --release
+
+# note that this might take a while to install, because it compiles everything from scratch
+# Trunk also provides prebuilt binaries for a number of major package managers
+# See https://trunkrs.dev/#install for further details
+RUN cargo install --locked trunk
+
+

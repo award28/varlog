@@ -4,4 +4,4 @@ COPY ./server ./server
 
 RUN cargo install --path ./server
 
-CMD ["varlog_server"]
+CMD ["cargo", "run", "--release", "-p", "server"]
