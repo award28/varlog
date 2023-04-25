@@ -2,3 +2,4 @@
 *.log
 /target/
 /app/dist/
+/fake_data/myspace*

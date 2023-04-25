@@ -1,0 +1,6 @@
+{{ range $year := Loop 10 -}}
+{{- range $month := Loop 11 -}}
+{{- range $day := Loop 30 -}}
+{{- range Loop 1500 -}}
+[200{{ $year }}-{{ $month }}-{{ $day }}]: {"username": "{{ Username }}",  "id": "{{ Uuidv4 }}" "timezone": "{{ Timezone }}", "country": "{{ Country }}", "state": "{{ State }}", "phone": "{{ Phone }}", "ip": "{{ Ipv4 }}"}
+{{ end -}}{{ end -}}{{ end -}}{{ end -}}

@@ -15,8 +15,10 @@ app:
 clean:
 	docker rmi varlog/base varlog/app varlog/server
 
-build:
+base:
 	docker build -f ./docker/base.Dockerfile . --tag varlog/base 
+
+build:
 	docker build -f ./docker/registry.Dockerfile . --tag varlog/registry 
 	docker build -f ./docker/server.Dockerfile . --tag varlog/server 
 	docker build -f ./docker/app.Dockerfile . --tag varlog/app 
@@ -34,3 +36,9 @@ ps:
 
 logs:
 	docker compose logs -f
+
+fake1gb:
+	fakedata --template ./fake_data/1gb.log.tmpl --limit 1 > ./fake_data/myspace.1gb.log 
+
+fake5gb:
+	fakedata --template ./fake_data/5gb.log.tmpl --limit 1 > ./fake_data/myspace.5gb.log 
