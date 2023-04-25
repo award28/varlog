@@ -19,7 +19,8 @@ clean:
 	docker rmi varlog/base varlog/app varlog/server
 
 build:
-	docker build -f ./docker/build.Dockerfile . --tag varlog/base 
+	docker build -f ./docker/base.Dockerfile . --tag varlog/base 
+	docker build -f ./docker/registry.Dockerfile . --tag varlog/registry 
 	docker build -f ./docker/server.Dockerfile . --tag varlog/server 
 	docker build -f ./docker/app.Dockerfile . --tag varlog/app 
 
