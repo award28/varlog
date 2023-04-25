@@ -36,7 +36,7 @@ struct TokenResponse {
 
 #[post("/auth/register")]
 async fn register(
-    config: web::Data<crate::AppConfig>,
+    config: web::Data<crate::conf::AppConfig>,
     auth_data: web::Json<AuthRequest>,
 ) -> impl Responder {
     if let Err(e) = auth_data.validate() {

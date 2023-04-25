@@ -53,7 +53,7 @@ struct ServersResponse {
 
 #[get("/servers")]
 async fn available_servers(
-    config: web::Data<crate::AppConfig>,
+    config: web::Data<crate::conf::AppConfig>,
     claims: web::ReqData<crate::auth::Claims>,
 ) -> impl Responder {
     let registry_url = (*config.registry_url).to_owned();

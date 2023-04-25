@@ -68,7 +68,7 @@ impl TryFrom<&ServiceRequest> for Claims {
     type Error = String;
 
     fn try_from(req: &ServiceRequest) -> Result<Self, Self::Error> {
-        let config: Option<&web::Data<crate::AppConfig>> = req.app_data();
+        let config: Option<&web::Data<crate::conf::AppConfig>> = req.app_data();
 
         // Hitting this case means that the app data is either misconfigured
         // or is being retrieved incorrectly.
