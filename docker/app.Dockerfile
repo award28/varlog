@@ -8,4 +8,4 @@ WORKDIR /usr/src/app
 
 RUN trunk build --release
 
-CMD ["trunk", "serve", "--release", "--address=0.0.0.0", "--port=8000", "--proxy-backend=https://yew.rs/tutorial"]
+CMD ["trunk", "serve", "--release", "--address=0.0.0.0", "--port=8000", "--proxy-backend=http://server:8080/v1"]
