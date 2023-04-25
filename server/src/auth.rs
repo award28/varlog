@@ -1,4 +1,4 @@
-use actix_web::{dev::ServiceRequest, web};
+use actix_web::{dev::ServiceRequest, web, Scope};
 
 
 use serde::{Serialize, Deserialize};
@@ -11,6 +11,11 @@ const DAY_IN_SECONDS: i64 = 86400;
 
 pub mod middleware;
 pub mod routes;
+
+pub fn service() -> Scope {
+    web::scope("")
+        .service(routes::register)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessData {

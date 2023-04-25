@@ -2,10 +2,18 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::ops::Add;
 
+use actix_web::{Scope, web};
+
 // 10 KB = 10240
 const BUFSIZE: u64 = 10240;
 
 pub mod routes;
+
+pub fn service() -> Scope {
+    web::scope("")
+        .service(routes::log)
+        .service(routes::logs)
+}
 
 pub struct RevLogReader {
     fp: File,

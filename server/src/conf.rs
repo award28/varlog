@@ -56,7 +56,7 @@ impl AppConfig {
             ),
         ];
 
-        let err = match File::create(VARLOG_LOG_FILE)  {
+        let file_err = match File::create(VARLOG_LOG_FILE)  {
             Ok(file) => {
                 loggers.push(
                     WriteLogger::new(
@@ -80,7 +80,8 @@ impl AppConfig {
             error!("Could not init loggers: {}.", e);
         }
 
-        if let Some(e) = err {
+        if let Some(e) = file_err {
+            // Need to delay logging until loggers have been initialized
             warn!("{}", e);
         }
     }
