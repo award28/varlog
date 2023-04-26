@@ -19,7 +19,6 @@ struct ServersLogsRequest {
     servers: Vec<String>,
 }
 
-
 impl<'de> Deserialize<'de> for ServersLogsRequest {
     fn deserialize<D>(deserializer: D) -> Result<ServersLogsRequest, D::Error>
     where
