@@ -78,17 +78,6 @@ impl VarlogClient {
             ]);
         Self::execute(req).await
     }
-
-    async fn get_log(&self, logs_req: GetLogsRequest) -> Vec<String> {
-        let filename = logs_req.filename.as_str();
-        let req = self.request(format!("/v1/logs/{filename}").as_str())
-            .query([
-                ("pattern", logs_req.pattern.to_owned()),
-                ("skip", format!("{}", logs_req.skip)),
-                ("take", format!("{}", logs_req.take)),
-            ]);
-        Self::execute(req).await
-    }
 }
 
 #[function_component(LogRetriever)]

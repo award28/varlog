@@ -1,49 +1,30 @@
 use yew::prelude::*;
-use gloo_net::http::Request;
 
-use crate::videos::{VideosList, VideoDetails, Video};
+use crate::organisms::{auth_form::AuthForm, header::Header, log_retriever::LogRetriever};
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let videos = use_state(|| vec![]);
-    {
-        let videos = videos.clone();
-        use_effect_with_deps(move |_| {
-            let videos = videos.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                let fetched_videos: Vec<Video> = Request::get("/tutorial/data.json")
-                    .send()
-                    .await
-                    .unwrap()
-                    .json()
-                    .await
-                    .unwrap();
-                videos.set(fetched_videos);
-            });
-            || ()
-        }, ());
-    }
-    let selected_video = use_state(|| None);
+    let token = use_state(|| None);
 
-    let on_video_select = {
-        let selected_video = selected_video.clone();
-        Callback::from(move |video: Video| {
-            selected_video.set(Some(video))
+    let ontoken = {
+        let token = token.clone();
+        Callback::from(move |token_str: String| {
+            token.set(Some(token_str))
         })
     };
 
-    let details = selected_video.as_ref().map(|video| html! {
-        <VideoDetails video={video.clone()} />
-    });
+    let token = token.as_ref().to_owned();
 
     html! {
+        <div class="col-lg-8 mx-auto p-4 py-md-5">
+        <Header title="VARLOG" />
         <main>
-            <h1>{ "RustConf Explorer" }</h1>
-            <div>
-            <h3>{"Videos to watch"}</h3>
-            <VideosList videos={(*videos).clone()} onclick={on_video_select.clone()} />
-            </div>
-            { for details }
+        if let Some(token) = token {
+            <LogRetriever token={token.to_owned()} />
+        } else {
+            <AuthForm ontoken={ontoken} />
+        }
         </main>
+        </div>
     }
 }
