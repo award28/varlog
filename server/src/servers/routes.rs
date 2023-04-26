@@ -29,17 +29,17 @@ impl<'de> Deserialize<'de> for ServersLogsRequest {
             where
                 V: MapAccess<'de>
             {
-                let mut servers: Vec<String> = Vec::default();
+                let mut req_servers: Vec<String> = Vec::default();
                 while let Some(key) = map.next_key()? {
                     match key {
                         "server" => {
-                            servers.push(map.next_value::<String>()?)
+                            req_servers.push(map.next_value::<String>()?)
                         }
                         _ => ()
                     }
                 }
                 Ok(ServersLogsRequest {
-                    servers
+                    servers: req_servers
                 })
             }
         }
@@ -53,7 +53,7 @@ struct ServersResponse {
 }
 
 #[get("/servers")]
-async fn available_servers(
+async fn servers(
     config: web::Data<crate::conf::AppConfig>,
     claims: web::ReqData<Claims>,
 ) -> impl Responder {
