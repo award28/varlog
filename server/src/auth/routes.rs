@@ -3,6 +3,8 @@ use regex::RegexSet;
 use serde::{Deserialize, Serialize};
 use validator::{Validate, ValidationError};
 
+use crate::http::Error;
+
 use super::claims::Claims;
 use super::access_data::AccessData;
 
@@ -46,11 +48,7 @@ async fn register(
     register_req: web::Json<RegisterRequest>,
 ) -> impl Responder {
     if let Err(e) = register_req.validate() {
-        return HttpResponse::BadRequest().json(
-            crate::http::HttpError {
-                error: format!("{e}"),
-            }
-        );
+        return Error::BadRequest(format!("{e}")).to_http_response();
     }
 
     let paths = register_req.paths.iter()
@@ -76,9 +74,6 @@ async fn register(
                 token,
                 expires: claim.exp,
             }),
-        Err(e) => HttpResponse::BadRequest()
-            .json(crate::http::HttpError {
-                error: format!("{e}"),
-            }),
+        Err(e) => Error::BadRequest(format!("{e}")).to_http_response(),
     }
 }

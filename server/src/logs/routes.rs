@@ -3,7 +3,7 @@ use std::{fs, path::Path, io};
 use actix_web::{web, get, HttpResponse, Responder};
 use serde::Deserialize;
 
-use crate::{auth::claims::Claims, http::{HttpError, internal_err}};
+use crate::{auth::claims::Claims, http::Error};
 use super::rev_log_reader::RevLogReader;
 
 #[derive(Debug, Deserialize)]
@@ -23,7 +23,7 @@ async fn logs(
             Ok(files) => files,
             Err(e) => {
                 error!("Error walking /var/log dir: {e}");
-                return internal_err();
+                return Error::InternalServiceError.to_http_response();
             },
         }
     };
@@ -68,19 +68,15 @@ async fn log(
     let (filename,) = path.into_inner();
 
     if filename.contains("..") {
-        return HttpResponse::Forbidden()
-            .json(HttpError {
-                error: String::from("The `..` operator is forbidden."),
-            });
+        return Error::Forbidden(
+            "The `..` operator is forbidden.".to_owned(),
+        ).to_http_response();
     }
 
     if !claims.data.file_access_authorized(&filename) {
-        return HttpResponse::Forbidden()
-            .json(HttpError {
-                error: format!(
-                    "You do not have access to file {filename}",
-                ),
-            });
+        return Error::Forbidden(
+            format!("You do not have access to file {filename}"),
+        ).to_http_response();
     }
     let filename = if filename.starts_with("/var/log") {
         filename.to_owned()
@@ -89,14 +85,12 @@ async fn log(
     };
 
     if !Path::new(&filename).is_file() {
-        return HttpResponse::BadRequest()
-            .json(HttpError {
-                error: format!("{filename} does not exist."),
-            });
+        return Error::BadRequest(
+            format!("{filename} does not exist."),
+        ).to_http_response();
     }
 
-    let pat = logs_req.pattern
-        .to_owned()
+    let pat = logs_req.pattern.to_owned()
         .unwrap_or(String::new());
 
     let mut rev_log_reader = {
@@ -104,7 +98,7 @@ async fn log(
             Ok(r) => r,
             Err(e) => {
                 error!("Error reading from log file: {e}");
-                return internal_err();
+                return Error::InternalServiceError.to_http_response();
             },
         }
     };
