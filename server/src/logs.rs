@@ -1,10 +1,10 @@
-use actix_web::{Scope, web};
+use actix_web::Scope;
 
+mod rev_log_reader;
 pub mod routes;
-pub mod rev_log_reader;
 
-pub fn service() -> Scope {
-    web::scope("")
+pub fn register_services(scope: Scope) -> Scope {
+    scope
         .service(routes::log)
         .service(routes::logs)
 }

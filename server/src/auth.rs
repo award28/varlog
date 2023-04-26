@@ -1,11 +1,10 @@
-use actix_web::{Scope, web};
+use actix_web::Scope;
 
 pub mod access_data;
 pub mod middleware;
 pub mod claims;
-pub mod routes;
+mod routes;
 
-pub fn service() -> Scope {
-    web::scope("")
-        .service(routes::register)
+pub fn register_services(scope: Scope) -> Scope {
+    scope.service(routes::register)
 }

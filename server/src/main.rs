@@ -15,18 +15,18 @@ async fn main() -> Result<()> {
     let config = conf::AppConfig::new()?;
     config.configure().await;
     HttpServer::new(move || {
-        let auth_scoped_service = web::scope("")
-            .wrap(AuthRequired::default())
-            .service(logs::service())
-            .service(servers::service());
+        let mut scope = web::scope("");
+        scope = logs::register_services(scope);
+        scope = servers::register_services(scope);
 
-        let v1_endpoints = web::scope("v1")
-            .service(auth::service())
-            .service(auth_scoped_service);
+        let mut v1_endpoints = web::scope("v1");
+        v1_endpoints = auth::register_services(v1_endpoints);
 
         App::new().app_data(web::Data::new(config.clone()))
             .wrap(middleware::Logger::default())
-            .service(v1_endpoints)
+            .service(v1_endpoints.service(
+                    scope.wrap(AuthRequired::default(),
+            )))
     })
     .bind(("0.0.0.0", 8080))?
     .run()

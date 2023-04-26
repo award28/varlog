@@ -18,9 +18,7 @@ pub struct RegisterRequest {
 fn validate_paths(paths: &Vec<String>) -> Result<(), ValidationError> {
     // Validates the user is in the /var/log directory
     // and isn't trying to access a parent directory
-    if paths.iter().any(|path| {
-        !path.starts_with("/var/log/") || path.contains("..")
-    }) {
+    if paths.iter().any(|path| path.contains("..")) {
         return Err(ValidationError::new(
             "Parent directory access is forbidden."
         ));

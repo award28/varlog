@@ -1,9 +1,9 @@
-use actix_web::{Scope, web};
+use actix_web::Scope;
 
-pub mod routes;
+mod routes;
 
-pub fn service() -> Scope {
-    web::scope("")
+pub fn register_services(scope: Scope) -> Scope {
+    scope
         .service(routes::servers)
         .service(routes::servers_log)
         .service(routes::servers_logs)
