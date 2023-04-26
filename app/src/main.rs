@@ -1,3 +1,5 @@
+#[macro_use] extern crate log;
+
 mod app;
 mod hooks;
 mod components;

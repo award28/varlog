@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use gloo_console::log;
 use gloo_net::http::Request;
+use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use yew::prelude::*;
 
@@ -29,6 +30,11 @@ struct VarlogClient {
     token: String,
 }
 
+#[derive(Deserialize)]
+struct ErrorResponse {
+    error: String,
+}
+
 impl VarlogClient {
     fn new<'a> (token: &'a str) -> Self {
         let token = format!("Bearer {token}");
@@ -37,33 +43,23 @@ impl VarlogClient {
 
     fn request(&self, url: &str) -> Request {
         Request::new(url)
-            .header(
-                "Authorization",
-                self.token.as_str(),
-            )
+            .header("Authorization", self.token.as_str())
     }
 
-    async fn execute<'de, T>(req: Request) -> T 
-        where T: DeserializeOwned
-    {
-            // TODO: Handle error case where file Authorization isn't permitted.
-            req.send().await
-            .expect("The request to succeed")
-            .json().await
-            .expect("The request to be a vector of strings")
-    }
-
-    async fn get_servers(&self) -> Vec<String> {
+    async fn get_servers(&self) -> Result<Vec<String>, String> {
         let req = self.request(format!("/v1/servers").as_str());
         Self::execute(req).await
     }
 
-    async fn get_logs(&self) -> Vec<String> {
+    async fn get_logs(&self) -> Result<Vec<String>, String> {
         let req = self.request(format!("/v1/logs").as_str());
         Self::execute(req).await
     }
 
-    async fn get_servers_log(&self, logs_req: GetLogsRequest) -> HashMap<String, Vec<String>> {
+    async fn get_servers_log(
+        &self,
+        logs_req: GetLogsRequest,
+    ) -> Result<HashMap<String, Vec<String>>, String> {
         let filename = logs_req.filename.as_str();
         let servers = logs_req.servers.clone();
         let q = servers.into_iter()
@@ -78,6 +74,31 @@ impl VarlogClient {
             ]);
         Self::execute(req).await
     }
+
+    async fn execute<'de, T>(req: Request) -> Result<T, String>
+        where T: DeserializeOwned
+    {
+        let snag_msg = String::from("Looks like we hit a snag..");
+        let resp = req.send().await
+            .map_err(|e| {
+                error!("Error executing request: {e}");
+                snag_msg.clone()
+            })?;
+
+        match resp.json::<T>().await {
+            Ok(data) => {return Ok(data);},
+            Err(_) => (),
+        }
+
+        match resp.json::<ErrorResponse>().await {
+            Ok(err_res) => Err(err_res.error),
+            Err(e) => {
+                error!("Error deserializing response: {e}");
+                Err(snag_msg)
+            },
+        }
+    }
+
 }
 
 #[function_component(LogRetriever)]
@@ -107,7 +128,7 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
             let varlog_client = varlog_client.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 let fetched_servers = varlog_client.get_servers().await;
-                servers.set(fetched_servers);
+                servers.set(fetched_servers.unwrap());
             });
             || ()
         }, ());
@@ -144,7 +165,7 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
             let varlog_client = varlog_client.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 let fetched_logs = varlog_client.get_logs().await;
-                logs.set(fetched_logs);
+                logs.set(fetched_logs.unwrap());
             });
             || ()
         }, ());
@@ -168,6 +189,12 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
     };
 
 
+    let error = use_state(|| String::default());
+
+    let on_dismiss = {
+        let error = error.clone();
+        Callback::from(move |_| error.set(String::default()))
+    };
     let (pattern, on_pattern_change) = use_input_state(String::default());
     let (skip, on_skip_change) = use_input_state(0);
     let (take, on_take_change) = use_input_state(10);
@@ -192,6 +219,7 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
 
 
     let on_submit = {
+        let error = error.clone();
         let servers = used_servers.clone();
         let logfile = logfile.clone();
         let pattern = pattern.clone();
@@ -201,10 +229,14 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
         let varlog_client = varlog_client.clone();
         Callback::from(move |_| {
             if logfile.is_none() {
-                content.set(String::from("You must select a logfile."));
+                error.set(String::from("You must select a logfile."));
                 return;
             }
             let servers = (*servers).clone();
+            if servers.is_empty() {
+                error.set(String::from("You must select at least 1 server."));
+                return;
+            }
             let filename = (*logfile).as_ref().unwrap().clone();
             let pattern: String = (*pattern).clone();
             let req = GetLogsRequest {
@@ -214,17 +246,27 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
                 skip: (*skip).clone(),
                 take: (*take).clone(),
             };
+            let error = error.clone();
             let varlog_client = varlog_client.clone();
             let content = content.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 let fetched_content = varlog_client.get_servers_log(req).await;
-                let fetched_content = fetched_content.into_iter()
+                let fetched_content = {
+                    match fetched_content {
+                        Ok(content) => content,
+                        Err(e) => {
+                            error.set(e);
+                            return;
+                        },
+                    }
+                }.into_iter()
                     .map(|(server, logs)| {
                         let hr = String::from("---");
                         [hr.clone(), server, hr, logs.join("\t\n")].join("\n")
                     })
                     .collect::<Vec<_>>();
                 content.set(fetched_content.join("\n"));
+                error.set("".to_owned());
             });
            
         })
@@ -273,6 +315,12 @@ pub fn log_retriever(LogRetrieverProps { token }: &LogRetrieverProps) -> Html {
               </div>
             </form>
             <hr />
+            if !error.is_empty() {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>{"Error"}</strong> { format!(" {}", error.as_str()) }
+                <button type="button" class="btn-close" onclick={on_dismiss} aria-label="Close"></button>
+                </div>
+            }
             <pre>
                 <code>
                     { (*content).clone() }
