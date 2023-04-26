@@ -43,9 +43,9 @@ struct TokenResponse {
 #[post("/auth/register")]
 async fn register(
     config: web::Data<crate::conf::AppConfig>,
-    auth_data: web::Json<RegisterRequest>,
+    register_req: web::Json<RegisterRequest>,
 ) -> impl Responder {
-    if let Err(e) = auth_data.validate() {
+    if let Err(e) = register_req.validate() {
         return HttpResponse::BadRequest().json(
             crate::http::HttpError {
                 error: format!("{e}"),
@@ -53,7 +53,7 @@ async fn register(
         );
     }
 
-    let paths = auth_data.paths.iter()
+    let paths = register_req.paths.iter()
         .map(|path| {
             match (path.starts_with('^'), path.ends_with('$')) {
                 (true, true) => path.to_owned(),
@@ -66,7 +66,7 @@ async fn register(
 
     let access_data = AccessData { 
         paths, 
-        servers: auth_data.servers.clone()
+        servers: register_req.servers.clone()
     };
 
     let claim = Claims::new(access_data);
