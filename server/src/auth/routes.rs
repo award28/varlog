@@ -71,14 +71,14 @@ async fn register(
 
     let claim = Claims::new(access_data);
     match claim.sign(&config.key) {
-        Ok(token) => HttpResponse::Ok().json(TokenResponse {
-            token,
-            expires: claim.exp,
-        }),
-        Err(e) => HttpResponse::BadRequest().json(
-            crate::http::HttpError {
+        Ok(token) => HttpResponse::Ok()
+            .json(TokenResponse {
+                token,
+                expires: claim.exp,
+            }),
+        Err(e) => HttpResponse::BadRequest()
+            .json(crate::http::HttpError {
                 error: format!("{e}"),
-            }
-        ),
+            }),
     }
 }
