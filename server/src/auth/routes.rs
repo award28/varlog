@@ -1,26 +1,30 @@
 use actix_web::{web, post, HttpResponse, Responder};
 use regex::RegexSet;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use validator::{Validate, ValidationError};
 
 use super::claims::Claims;
 use super::access_data::AccessData;
 
 #[derive(Debug, Validate, Deserialize)]
-pub struct AuthRequest {
+pub struct RegisterRequest {
     #[validate(length(min = 1), custom = "validate_paths")]
     pub paths: Vec<String>,
     pub servers: Vec<String>,
 }
 
 fn validate_paths(paths: &Vec<String>) -> Result<(), ValidationError> {
-    if paths.iter().any(|path| path.contains("..")) {
+    // Validates the user is in the /var/log directory
+    // and isn't trying to access a parent directory
+    if paths.iter().any(|path| {
+        !path.starts_with("/var/log/") || path.contains("..")
+    }) {
         return Err(ValidationError::new(
-                "Parent directory access is forbidden."
+            "Parent directory access is forbidden."
         ));
     }
 
-    // Performs validation that the regex is properly formatted.
+    // Performs validation that the regex is properly formatted
     RegexSet::new(paths.clone())
         .map_err(|_| ValidationError::new(
             "Invalid file paths"
@@ -29,7 +33,6 @@ fn validate_paths(paths: &Vec<String>) -> Result<(), ValidationError> {
 
     Ok(())
 }
-use serde::Serialize;
 
 #[derive(Serialize)]
 struct TokenResponse {
@@ -40,7 +43,7 @@ struct TokenResponse {
 #[post("/auth/register")]
 async fn register(
     config: web::Data<crate::conf::AppConfig>,
-    auth_data: web::Json<AuthRequest>,
+    auth_data: web::Json<RegisterRequest>,
 ) -> impl Responder {
     if let Err(e) = auth_data.validate() {
         return HttpResponse::BadRequest().json(
