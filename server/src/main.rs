@@ -12,8 +12,13 @@ mod conf;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
-    let config = conf::AppConfig::new()?;
-    config.configure().await;
+    let config = match conf::AppConfig::configure().await {
+        Ok(config) => config,
+        Err(e) => {
+            error!("Configuration Error: {e}");
+            std::process::exit(1);
+        }
+    };
     HttpServer::new(move || {
         let mut scope = web::scope("");
         scope = logs::register_services(scope);
