@@ -9,7 +9,7 @@ use crate::{
     auth::{
         claims::Claims,
         access_data::AccessData
-    },
+    }, http::Error,
 };
 
 const SERVER_PAYLOAD_KEY: &str = "server";
@@ -126,25 +126,15 @@ async fn servers_logs_handle(
     req_servers: Vec<String>,
     access_data: &AccessData,
 ) -> crate::http::Result<HashMap<String, Vec<String>>> {
-    if let Some(server) = req_servers.iter().filter(|server| {
-        !access_data.server_access_authorized(server)
-    }).next() {
-        return Err(crate::http::Error::Forbidden(
-            format!("You do not have access to server `{server}`.")
-        ));
-    }
-
-    let auth_header = get_auth_header(&req)
-        .ok_or(crate::http::Error::BadRequest(
-            format!("Authorization header is required for this endpoint.")
-        ))?;
+    validate_server_access(&req_servers, &access_data)?;
+    let auth_header = get_auth_header(&req)?;
 
     let mut server_logfiles_map = HashMap::new();
 
     for server in req_servers {
         let logs = logs_from_server(
             server.as_str(),
-            auth_header,
+            auth_header.as_str(),
             )
             .await;
 
@@ -155,34 +145,6 @@ async fn servers_logs_handle(
         server_logfiles_map.insert(server, logs);
     }
     Ok(server_logfiles_map)
-}
-
-fn get_auth_header<'a>(req: &'a HttpRequest) -> Option<&'a str> {
-    req.headers().get("Authorization")?.to_str().ok()
-}
-
-async fn logs_from_server(
-    server: &str,
-    auth_header: &str,
-) -> Result<Vec<String>, String> {
-    let logs = reqwest::Client::new()
-        .get(format!("http://{server}/v1/logs"))
-        .header(reqwest::header::AUTHORIZATION, auth_header)
-        .send()
-        .await
-        .map_err(|e| {
-            let msg = format!("Error retrieving log files from server: {e}.");
-            warn!("{}", msg);
-            msg
-        })?
-        .json::<Vec<String>>()
-        .await
-        .map_err(|e| {
-            let msg = format!("Error deserializing log files: {e}.");
-            info!("{}", msg);
-            msg
-        })?;
-    Ok(logs)
 }
 
 #[get("/servers/logs/{filename:.*}")]
@@ -216,20 +178,8 @@ async fn servers_log_handle(
     access_data: &AccessData,
     logs_req: &crate::logs::routes::LogsRequest,
 ) -> crate::http::Result<HashMap<String, Vec<String>>> {
-
-    if let Some(server) = req_servers.iter().filter(|server| {
-        !access_data.server_access_authorized(server)
-    }).next() {
-        return Err(crate::http::Error::Forbidden(
-            format!("You do not have access to server `{server}`.")
-        ));
-    }
-
-    let auth_header = get_auth_header(&req)
-        .ok_or(crate::http::Error::BadRequest(
-            format!("Authorization header is required for this endpoint.")
-        ))?;
-
+    validate_server_access(&req_servers, &access_data)?;
+    let auth_header = get_auth_header(&req)?;
 
     let mut server_logs_map = HashMap::new();
 
@@ -237,7 +187,7 @@ async fn servers_log_handle(
         let logs = log_from_server(
             server.as_str(),
             filename,
-            auth_header,
+            auth_header.as_str(),
             logs_req,
             )
             .await;
@@ -251,6 +201,58 @@ async fn servers_log_handle(
 
     Ok(server_logs_map)
 }
+
+fn validate_server_access(
+    req_servers: &Vec<String>,
+    access_data: &AccessData,
+) -> crate::http::Result<()> {
+    if let Some(server) = req_servers.iter().filter(|server| {
+        !access_data.server_access_authorized(server)
+    }).next() {
+        return Err(crate::http::Error::Forbidden(
+            format!("You do not have access to server `{server}`.")
+        ));
+    }
+    Ok(())
+}
+
+fn get_auth_header<'a>(req: &'a HttpRequest) -> crate::http::Result<String> {
+    let header = req.headers().get("Authorization").ok_or(
+        Error::BadRequest(
+            format!("Authorization header is required for this endpoint.")
+        )
+    )?.to_str().map_err(|_|
+        Error::BadRequest(
+            format!("Authorization header must only contain ASCII characters.")
+        )
+    )?;
+    Ok(header.to_owned())
+}
+
+async fn logs_from_server(
+    server: &str,
+    auth_header: &str,
+) -> Result<Vec<String>, String> {
+    let logs = reqwest::Client::new()
+        .get(format!("http://{server}/v1/logs"))
+        .header(reqwest::header::AUTHORIZATION, auth_header)
+        .send()
+        .await
+        .map_err(|e| {
+            let msg = format!("Error retrieving log files from server: {e}.");
+            warn!("{}", msg);
+            msg
+        })?
+        .json::<Vec<String>>()
+        .await
+        .map_err(|e| {
+            let msg = format!("Error deserializing log files: {e}.");
+            info!("{}", msg);
+            msg
+        })?;
+    Ok(logs)
+}
+
 
 async fn log_from_server(
     server: &str,
