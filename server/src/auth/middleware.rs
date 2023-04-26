@@ -8,7 +8,7 @@ use actix_web::{
         Transform
     },
     Error,
-    HttpMessage,
+    HttpMessage, error::{ErrorInternalServerError, ErrorUnauthorized},
 };
 use futures_util::{future::LocalBoxFuture, FutureExt};
 
@@ -56,9 +56,9 @@ where
         match super::Claims::try_from(&req) {
             Err(e) => Box::pin(async move {
                 if e.eq("Internal Server Error") {
-                    return Err(actix_web::error::ErrorInternalServerError(e));
+                    return Err(ErrorInternalServerError(e));
                 }
-                Err(actix_web::error::ErrorUnauthorized(e))
+                Err(ErrorUnauthorized(e))
             }),
             Ok(claims) => {
                 req.extensions_mut().insert(claims);

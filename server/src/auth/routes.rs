@@ -3,6 +3,8 @@ use regex::RegexSet;
 use serde::Deserialize;
 use validator::{Validate, ValidationError};
 
+use crate::auth::Claims;
+
 #[derive(Debug, Validate, Deserialize)]
 pub struct AuthRequest {
     #[validate(length(min = 1), custom = "validate_paths")]
@@ -63,8 +65,9 @@ async fn register(
         servers: auth_data.servers.clone()
     };
 
-    match crate::auth::Claims::sign(&config.key, access_data) {
-        Ok((claim, token)) => HttpResponse::Ok().json(TokenResponse {
+    let claim = Claims::new(access_data);
+    match claim.sign(&config.key) {
+        Ok(token) => HttpResponse::Ok().json(TokenResponse {
             token,
             expires: claim.exp,
         }),

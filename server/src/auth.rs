@@ -1,6 +1,7 @@
 use actix_web::{dev::ServiceRequest, web, Scope};
 
 
+use chrono::Utc;
 use serde::{Serialize, Deserialize};
 use hmac::Hmac;
 use sha2::Sha256;
@@ -54,13 +55,12 @@ impl Claims {
         }
     }
 
-    pub fn sign(key: &Hmac<Sha256>, data: AccessData) -> Result<(Self, String), Error> {
-        let claim = Self::new(data);
-        Ok((claim.clone(), claim.sign_with_key(key)?))
+    pub fn sign(&self, key: &Hmac<Sha256>) -> Result<String, Error> {
+        Ok(self.clone().sign_with_key(key)?)
     }
 
     fn validate(&self) -> Result<(), String> {
-        let now = chrono::offset::Utc::now().timestamp();
+        let now = Utc::now().timestamp();
         if now > self.exp {
             return Err(String::from("Token expired."));
         }
