@@ -3,7 +3,8 @@ use regex::RegexSet;
 use serde::Deserialize;
 use validator::{Validate, ValidationError};
 
-use crate::auth::Claims;
+use super::claims::Claims;
+use super::access_data::AccessData;
 
 #[derive(Debug, Validate, Deserialize)]
 pub struct AuthRequest {
@@ -60,7 +61,7 @@ async fn register(
         })
     .collect::<Vec<_>>();
 
-    let access_data = crate::auth::AccessData { 
+    let access_data = AccessData { 
         paths, 
         servers: auth_data.servers.clone()
     };

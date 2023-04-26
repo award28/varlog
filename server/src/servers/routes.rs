@@ -4,7 +4,8 @@ use serde::{de::{Deserializer, Visitor, MapAccess}, Deserialize};
 
 use actix_web::{web, get, HttpResponse, Responder, HttpRequest};
 
-use crate::logs::routes::LogsRequest;
+use crate::{logs::routes::LogsRequest, auth::claims::Claims};
+
 #[derive(Debug)]
 struct ServersLogsRequest {
     servers: Vec<String>,
@@ -54,7 +55,7 @@ struct ServersResponse {
 #[get("/servers")]
 async fn available_servers(
     config: web::Data<crate::conf::AppConfig>,
-    claims: web::ReqData<crate::auth::Claims>,
+    claims: web::ReqData<Claims>,
 ) -> impl Responder {
     let registry_url = (*config.registry_url).to_owned();
     let res: Vec<String> = reqwest::get(format!("{registry_url}/registered"))
@@ -76,7 +77,7 @@ async fn available_servers(
 #[get("/servers/logs")]
 async fn servers_logs(
     req: HttpRequest,
-    claims: web::ReqData<crate::auth::Claims>,
+    claims: web::ReqData<Claims>,
     servers_logs_req: web::Query<ServersLogsRequest>,
 ) -> impl Responder {
     if let Some(server) = servers_logs_req.servers.iter().filter(|server| {
@@ -135,7 +136,7 @@ async fn logs_from_server(
 async fn servers_log(
     req: HttpRequest,
     path: web::Path<(String,)>,
-    claims: web::ReqData<crate::auth::Claims>,
+    claims: web::ReqData<Claims>,
     servers_logs_req: web::Query<ServersLogsRequest>,
     logs_req: web::Query<crate::logs::routes::LogsRequest>,
 ) -> impl Responder {

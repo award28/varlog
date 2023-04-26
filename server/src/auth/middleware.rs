@@ -8,9 +8,12 @@ use actix_web::{
         Transform
     },
     Error,
-    HttpMessage, error::{ErrorInternalServerError, ErrorUnauthorized},
+    HttpMessage,
+    error::ErrorUnauthorized,
 };
 use futures_util::{future::LocalBoxFuture, FutureExt};
+
+use super::claims::Claims;
 
 #[derive(Default)]
 pub struct AuthRequired;
@@ -53,11 +56,8 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        match super::Claims::try_from(&req) {
+        match Claims::try_from(&req) {
             Err(e) => Box::pin(async move {
-                if e.eq("Internal Server Error") {
-                    return Err(ErrorInternalServerError(e));
-                }
                 Err(ErrorUnauthorized(e))
             }),
             Ok(claims) => {

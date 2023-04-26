@@ -2,6 +2,9 @@ use std::{fs, path::Path, io};
 
 use actix_web::{web, get, HttpResponse, Responder};
 use serde::Deserialize;
+
+use crate::auth::claims::Claims;
+
 #[derive(Debug, Deserialize)]
 pub struct LogsRequest {
     pub take: Option<usize>,
@@ -11,7 +14,7 @@ pub struct LogsRequest {
 
 #[get("/logs")]
 async fn logs(
-    claims: web::ReqData<crate::auth::Claims>,
+    claims: web::ReqData<Claims>,
 ) -> impl Responder {
     let paths_res = visit_dirs(Path::new("/var/log"));
     if paths_res.is_err() {
@@ -50,7 +53,7 @@ fn visit_dirs(dir: &Path) -> io::Result<Vec<String>> {
 
 #[get("/logs/{filename:.*}")]
 async fn log(
-    claims: web::ReqData<crate::auth::Claims>,
+    claims: web::ReqData<Claims>,
     path: web::Path<(String,)>,
     logs_req: web::Query<LogsRequest>,
 ) -> impl Responder {

@@ -1,4 +1,4 @@
-use std::{env, fs::File};
+use std::{env, fs::File, fmt::{Display, Formatter, self}};
 
 use simplelog::*;
 use dotenv::dotenv;
@@ -117,8 +117,8 @@ fn get_env_var(v: &str) -> Result<String, ConfigError> {
 #[derive(Debug)]
 pub struct ConfigError(String);
 
-impl std::fmt::Display  for ConfigError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for ConfigError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f,"{}", self)
     }
 }
