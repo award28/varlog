@@ -1,27 +1,24 @@
 use std::future::{ready, Ready};
-
 use actix_web::{
-    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpMessage,
+    dev::{
+        forward_ready,
+        Service,
+        ServiceRequest,
+        ServiceResponse,
+        Transform
+    },
+    Error,
+    HttpMessage,
 };
 use futures_util::{future::LocalBoxFuture, FutureExt};
 
+#[derive(Default)]
+pub struct AuthRequired;
 
 // There are two steps in middleware processing.
 // 1. Middleware initialization, middleware factory gets called with
 //    next service in chain as parameter.
 // 2. Middleware's call method gets called with normal request.
-pub struct AuthRequired;
-
-impl AuthRequired {
-    pub fn default() -> Self {
-        AuthRequired{}
-    }
-}
-
-// Middleware factory is `Transform` trait
-// `S` - type of the next service
-// `B` - type of response's body
 impl<S, B> Transform<S, ServiceRequest> for AuthRequired
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
