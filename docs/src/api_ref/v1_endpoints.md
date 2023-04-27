@@ -37,7 +37,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /logs:
+  /v1/logs:
     get:
       tags:
         - default
