@@ -1,5 +1,9 @@
 .PHONY: app server clean registry
 
+#######################
+# Bare Metal Commands #
+#######################
+
 book:
 	cd docs && mdbook serve --open
 
@@ -11,6 +15,10 @@ registry:
 
 app:
 	trunk serve --proxy-backend=http://localhost:8080/v1 --address=0.0.0.0 --port=8000 app/index.html
+
+###################
+# Docker Commands #
+###################
 
 clean:
 	docker rmi varlog/base varlog/app varlog/server
@@ -36,6 +44,10 @@ ps:
 
 logs:
 	docker compose logs -f
+
+###########################
+# Log Generation Commands #
+###########################
 
 fake1gb:
 	fakedata --template ./fake_data/1gb.log.tmpl --limit 1 > ./fake_data/myspace.1gb.log 

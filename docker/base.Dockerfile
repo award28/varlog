@@ -1,7 +1,5 @@
 FROM rust:1.67 AS builder
 
-COPY ./fake_data/myspace.1gb.log /var/log/
-
 WORKDIR /usr/src/
 
 COPY Cargo.toml Cargo.lock ./

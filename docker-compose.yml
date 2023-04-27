@@ -18,6 +18,8 @@ services:
     environment:
       HOSTNAME: "primary:8080"
       REGISTRY_URL: "http://registry:8888"
+    volumes:
+      - ./fake_data:/var/log
   secondary:
     image: varlog/server:latest
     depends_on:
@@ -28,6 +30,8 @@ services:
     environment:
       HOSTNAME: "secondary:8080"
       REGISTRY_URL: "http://registry:8888"
+    volumes:
+      - ./fake_data:/var/log
   teritary:
     image: varlog/server:latest
     depends_on:
@@ -38,3 +42,5 @@ services:
     environment:
       HOSTNAME: "teritary:8080"
       REGISTRY_URL: "http://registry:8888"
+    volumes:
+      - ./fake_data:/var/log
