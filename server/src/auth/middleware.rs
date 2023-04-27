@@ -61,6 +61,9 @@ where
                 Err(ErrorUnauthorized(e))
             }),
             Ok(claims) => {
+                let path = req.path();
+                let client_id = &claims.jti;
+                info!("{{\"path\": {path}, \"client_id\": {client_id}}}");
                 req.extensions_mut().insert(claims);
                 self.service.call(req).boxed_local()
             }

@@ -1,12 +1,18 @@
 # Summary
 
 [Introduction](introduction.md)
+[System Design](system_design.md)
+[Design Choices: Tradeoffs Made]()
+[Features]()
+[Learnings]()
 
-# User Guide
+# Contributing Guide
 
-- [My First Chapter](my-first-chapter.md)
+- [Docker Setup]()
+- [Bare Metal Setup]()
 
 # API Reference
 
-- [Nested example](nested/README.md)
-  - [Sub-chapter](nested/sub-chapter.md)
+- [Authentication]()
+- [Individual Server]()
+- [Varlog Mesh Network]()
