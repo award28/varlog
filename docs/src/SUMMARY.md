@@ -11,6 +11,7 @@
     - [Bare Metal Setup](contrib/metal_setup.md)
     - [Docker Setup](contrib/docker_setup.md)
 - [Contirubting](contrib/contributing.md)
+    - [Testing](contrib/testing.md)
 
 # API Reference
 

@@ -16,6 +16,10 @@ registry:
 app:
 	trunk serve --proxy-backend=http://localhost:8080/v1 --address=0.0.0.0 --port=8000 app/index.html
 
+test:
+	# TODO: os tests require sudo access to create the test file
+	sudo cargo test -p server
+
 ###################
 # Docker Commands #
 ###################

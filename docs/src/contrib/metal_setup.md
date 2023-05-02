@@ -94,4 +94,3 @@ has been started.
 ```
 [WARN] Error while registering hostname: error sending request for url (http://localhost:8888/register): error trying to connect: tcp connect error: Connection refused (os error 61).
 ```
-
