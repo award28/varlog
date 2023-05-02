@@ -1,4 +1,4 @@
-use std::{env, fs::File, fmt::{Display, Formatter, self}};
+use std::{env, fs::File, fmt::{Display, Formatter, self}, path::Path};
 
 use simplelog::*;
 use dotenv::dotenv;
@@ -6,7 +6,7 @@ use hmac::{Hmac, Mac};
 use serde::Serialize;
 use sha2::Sha256;
 
-const VARLOG_LOG_FILE: &str = "/var/log/varlog.log";
+const VARLOG_DIR: &str = "/var/log";
 
 #[derive(Debug)]
 pub struct ConfigError(String);
@@ -22,6 +22,7 @@ impl Display for ConfigError {
 pub struct AppConfig {
     pub key: Hmac<Sha256>,
     pub registry_url: String,
+    pub log_dir: String,
 }
 
 impl AppConfig {
@@ -45,9 +46,11 @@ impl AppConfig {
             registry_url.clone(),
         ).await;
 
+        let log_dir = VARLOG_DIR.to_string();
         Ok(Self {
             key,
             registry_url,
+            log_dir,
         })
     }
 
@@ -60,8 +63,8 @@ impl AppConfig {
                 ColorChoice::Auto,
             ),
         ];
-
-        let file_err = match File::create(VARLOG_LOG_FILE)  {
+        let varlog_logfile = Path::new(VARLOG_DIR).join("varlog.log");
+        let file_err = match File::create(&varlog_logfile)  {
             Ok(file) => {
                 loggers.push(
                     WriteLogger::new(
@@ -74,8 +77,8 @@ impl AppConfig {
             },
             Err(e) => {
                 Some(format!(
-                    "Could not create log file {}: {}.", 
-                    VARLOG_LOG_FILE,
+                    "Could not create log file {:?}: {}.", 
+                    varlog_logfile,
                     e,
                 ))
             }

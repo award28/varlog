@@ -3,7 +3,7 @@ use std::{fs, path::Path, io};
 use actix_web::{web, get, HttpResponse, Responder};
 use serde::Deserialize;
 
-use crate::{auth::claims::Claims, http::Error};
+use crate::{auth::claims::Claims, http::Error, conf};
 use super::rev_log_reader::RevLogReader;
 
 #[derive(Debug, Deserialize)]
@@ -15,14 +15,16 @@ pub struct LogsRequest {
 
 #[get("/logs")]
 async fn logs(
+    config: web::Data<conf::AppConfig>,
     claims: web::ReqData<Claims>,
 ) -> impl Responder {
-    let paths_res = visit_dirs(Path::new("/var/log"));
+    let log_dir = config.log_dir.clone();
+    let paths_res = visit_dirs(Path::new(log_dir.as_str()));
     let files = {
         match paths_res {
             Ok(files) => files,
             Err(e) => {
-                error!("Error walking /var/log dir: {e}");
+                error!("Error walking {} dir: {e}", log_dir);
                 return Error::InternalServiceError.to_http_response();
             },
         }
@@ -30,7 +32,7 @@ async fn logs(
     let files = files
         .iter()
         .filter_map(|filename| {
-            match filename.strip_prefix("/var/log/") {
+            match filename.strip_prefix(log_dir.as_str()) {
                 Some(filename) => Some(filename.to_owned()),
                 None => None,
             }
@@ -61,6 +63,7 @@ fn visit_dirs(dir: &Path) -> io::Result<Vec<String>> {
 
 #[get("/logs/{filename:.*}")]
 async fn log(
+    config: web::Data<conf::AppConfig>,
     claims: web::ReqData<Claims>,
     path: web::Path<(String,)>,
     logs_req: web::Query<LogsRequest>,
@@ -78,10 +81,12 @@ async fn log(
             format!("You do not have access to file {filename}"),
         ).to_http_response();
     }
-    let filename = if filename.starts_with("/var/log") {
+
+    let log_dir = config.log_dir.clone();
+    let filename = if filename.starts_with(log_dir.as_str()) {
         filename.to_owned()
     } else {
-        format!("/var/log/{filename}")
+        format!("{log_dir}/{filename}")
     };
 
     if !Path::new(&filename).is_file() {
