@@ -4,7 +4,6 @@ language = "en"
 multilingual = false
 src = "src"
 title = "Varlog Documentation"
-git-repository-url = "https://github.com/award28/varlog"
 
 [preprocessor]
 
@@ -15,3 +14,5 @@ command = "mdbook-mermaid"
 
 [output.html]
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
+git-repository-url = "https://github.com/award28/varlog"
+edit-url-template = "https://github.com/award28/varlog/edit/main/docs/{path}"
