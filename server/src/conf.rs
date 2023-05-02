@@ -25,7 +25,7 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    pub async fn configure()  -> Result<Self, ConfigError>  {
+    pub async fn configure() -> Result<Self, ConfigError>  {
         Self::init_loggers();
         dotenv().ok();
 
